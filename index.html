@@ -189,7 +189,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .goal.done{border-color:rgba(48,209,88,.55)}
 
 /* Advisor chat */
-.chat{display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow-y:auto;padding-right:2px}
+.chat{display:flex;flex-direction:column;gap:10px;height:52vh;min-height:280px;overflow-y:auto;padding-right:2px}
 .msg{max-width:88%;padding:12px 14px;border-radius:18px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;
   animation:rise .35s cubic-bezier(.2,.8,.2,1) both}
 .msg.me{align-self:flex-end;background:linear-gradient(135deg,#0a84ff,#5e5ce6);border-bottom-right-radius:6px}
@@ -202,6 +202,44 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .sugg button{font-family:inherit;font-size:12px;color:var(--text);background:rgba(255,255,255,.09);
   border:1px solid var(--stroke);border-radius:999px;padding:8px 12px;cursor:pointer}
 
+/* Stats: donut chart, bars, insights, badges */
+.donutWrap{display:flex;align-items:center;gap:18px}
+.donut{width:132px;height:132px;flex:0 0 132px;border-radius:50%;position:relative;
+  background:conic-gradient(rgba(255,255,255,.14) 0 100%)}
+.donut::after{content:"";position:absolute;inset:17px;border-radius:50%;
+  background:rgba(18,18,26,.72);backdrop-filter:blur(10px)}
+.donut .mid{position:absolute;inset:0;display:grid;place-items:center;text-align:center;z-index:1}
+.donut .mid b{display:block;font-size:19px;font-weight:780;font-variant-numeric:tabular-nums}
+.donut .mid span{font-size:10px;color:var(--muted);letter-spacing:.5px}
+.legend{flex:1;display:flex;flex-direction:column;gap:9px}
+.legend div{display:flex;align-items:center;gap:8px;font-size:13px}
+.legend i{width:10px;height:10px;border-radius:3px;flex:0 0 10px}
+.legend b{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700}
+.bars{display:flex;align-items:flex-end;gap:9px;height:130px;margin-top:6px}
+.bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+.bars div u{display:block;width:100%;border-radius:8px 8px 4px 4px;text-decoration:none;
+  background:linear-gradient(180deg,#0a84ff,#7b2ff7);min-height:3px;transition:height .6s cubic-bezier(.2,.8,.2,1)}
+.bars div u.now{background:linear-gradient(180deg,#30d158,#0a84ff)}
+.bars div s{text-decoration:none;font-size:10px;color:var(--muted)}
+.bars div em{font-size:10.5px;font-style:normal;font-variant-numeric:tabular-nums;color:var(--muted)}
+.ins{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.5;padding:11px 0}
+.ins + .ins{border-top:1px solid rgba(255,255,255,.1)}
+.ins b{font-size:17px;line-height:1.2}
+.badges{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.badge{display:flex;gap:10px;align-items:center;background:var(--glass);border:1px solid var(--stroke);
+  border-radius:16px;padding:12px;backdrop-filter:blur(20px)}
+.badge.locked{opacity:.38}
+.badge .be{font-size:22px}
+.badge .bt{font-size:12.5px;font-weight:650;line-height:1.3}
+.badge .bd{font-size:10.5px;color:var(--muted);margin-top:2px}
+.warn{background:rgba(255,159,10,.16);border-color:rgba(255,159,10,.45)}
+.warn.bad{background:rgba(255,69,58,.16);border-color:rgba(255,69,58,.45)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:var(--glass);border:1px solid var(--stroke);border-radius:18px;padding:13px 10px;text-align:center;
+  backdrop-filter:blur(20px)}
+.kpi .kv{font-size:18px;font-weight:780;font-variant-numeric:tabular-nums}
+.kpi .kn{font-size:10.5px;color:var(--muted);margin-top:3px}
+
 /* Tab bar */
 nav.tabs{
   position:fixed;left:0;right:0;bottom:0;z-index:40;
@@ -209,7 +247,7 @@ nav.tabs{
   background:rgba(20,20,28,.6);border-top:1px solid var(--stroke);
   backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);
 }
-nav.tabs .inner{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+nav.tabs .inner{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
 nav.tabs button{background:none;border:0;color:var(--muted);font-family:inherit;font-size:10px;
   display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;cursor:pointer;transition:.2s}
 nav.tabs button b{font-size:20px;line-height:1;font-weight:400}
@@ -295,11 +333,41 @@ nav.tabs button[data-on="1"]{color:var(--text);transform:translateY(-2px)}
     </div>
     <button class="btn ghost" style="margin-top:10px" onclick="openPlanNext()">📅 Plan Next Allowance</button>
 
+    <div id="paceCard"></div>
+
     <div class="sect"><h2>Next Allowance Plan</h2></div>
     <div class="card" id="planCard" style="padding:16px"></div>
 
     <div class="sect"><h2>Recent</h2><button class="link" onclick="go('history')">See all</button></div>
     <div class="list" id="recentList"></div>
+  </section>
+
+  <!-- ================= STATS ================= -->
+  <section class="screen" data-screen="stats">
+    <div class="sect" style="margin-top:2px"><h2>This Month</h2></div>
+    <div class="kpis" id="monthKpis"></div>
+
+    <div class="card" style="margin-top:14px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px">Where the money went</div>
+      <div class="donutWrap">
+        <div class="donut" id="donut"><div class="mid"><div><b id="donutTotal">0</b><span>SPENT SAR</span></div></div></div>
+        <div class="legend" id="donutLegend"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:15px;font-weight:700">Spending per month</div>
+      <div class="bars" id="monthBars"></div>
+    </div>
+
+    <div class="sect"><h2>Insights</h2></div>
+    <div class="card" style="padding:6px 16px" id="insights"></div>
+
+    <div class="sect"><h2>Streaks</h2></div>
+    <div class="kpis" id="streaks"></div>
+
+    <div class="sect"><h2>Badges</h2></div>
+    <div class="badges" id="badges"></div>
   </section>
 
   <!-- ================= HISTORY ================= -->
@@ -345,10 +413,12 @@ nav.tabs button[data-on="1"]{color:var(--text);transform:translateY(-2px)}
         <button onclick="ask()">↑</button>
       </div>
       <div class="sugg">
-        <button onclick="quick('Can I buy FC 27?')">Can I buy FC 27?</button>
-        <button onclick="quick('Can I go trampoline and Herfy?')">Trampoline + Herfy?</button>
-        <button onclick="quick('How am I doing this month?')">How am I doing?</button>
-        <button onclick="quick('Should I buy something for 60 SAR?')">Worth 60 SAR?</button>
+        <button onclick="quick('Is FC 27 worth buying?')">Is FC 27 worth buying?</button>
+        <button onclick="quick('Can I go trampoline and Herfy today?')">Trampoline + Herfy?</button>
+        <button onclick="quick('Am I spending too much?')">Am I spending too much?</button>
+        <button onclick="quick('How long until I can afford my goal?')">How long until my goal?</button>
+        <button onclick="quick('Can I afford this keyboard?')">Can I afford a keyboard?</button>
+        <button onclick="quick('How am I doing this month?')">Monthly summary</button>
       </div>
     </div>
   </section>
@@ -390,6 +460,7 @@ nav.tabs button[data-on="1"]{color:var(--text);transform:translateY(-2px)}
 <!-- ================= TAB BAR ================= -->
 <nav class="tabs"><div class="inner">
   <button data-tab="home" data-on="1" onclick="go('home')"><b>🏠</b><span>Home</span></button>
+  <button data-tab="stats" onclick="go('stats')"><b>📊</b><span>Stats</span></button>
   <button data-tab="history" onclick="go('history')"><b>🧾</b><span>History</span></button>
   <button data-tab="goals" onclick="go('goals')"><b>🎯</b><span>Goals</span></button>
   <button data-tab="ai" onclick="go('ai')"><b>🤖</b><span>Advisor</span></button>
@@ -582,7 +653,7 @@ function initFirebase(){
         state.goals     = v.goals   || {};
         saveCache();
       }else if(!v){
-        push();   // first ever run: seed the database with local state
+        pushAll();   // first ever run: seed the database with local state
       }
       render();
     }, err => { console.warn(err); setSync("err","local only"); });
@@ -592,11 +663,26 @@ function initFirebase(){
   }
 }
 
-/** Write the whole state up to Firebase (small doc, so this is cheap & safe). */
+function fail(e){ console.warn(e); setSync("err","save failed"); }
+
+/** Write the settings-ish scalars. History/goals/balances have their own writers. */
 function push(){
   saveCache();
   if(!ref) return;
-  muteRemote = true;                       // avoid echo while our own write lands
+  muteRemote = true;
+  ref.update({
+    allowanceAmount: state.allowanceAmount,
+    monthType: state.monthType,
+    nextPlan: state.nextPlan,
+    updatedAt: Date.now()
+  }).catch(fail).finally(() => { muteRemote = false; });
+}
+
+/** Full-document write. Only for seeding an empty database and for a hard reset. */
+function pushAll(){
+  saveCache();
+  if(!ref) return;
+  muteRemote = true;
   ref.set({
     allowanceAmount: state.allowanceAmount,
     balances: state.balances,
@@ -605,9 +691,41 @@ function push(){
     history: state.history,
     goals: state.goals,
     updatedAt: Date.now()
-  }).catch(e => { console.warn(e); setSync("err","save failed"); })
-    .finally(() => { muteRemote = false; });
+  }).catch(fail).finally(() => { muteRemote = false; });
 }
+
+/**
+ * Move money by a delta. Written as a transaction so two devices editing at once
+ * add up instead of overwriting each other.
+ */
+function applyDelta(d){
+  state.balances.hangout += num(d.hangout);
+  state.balances.savings += num(d.savings);
+  state.balances.ps      += num(d.ps);
+  saveCache();
+  if(!ref) return;
+  ref.child("balances").transaction(cur => {
+    const b = cur || { hangout:0, savings:0, ps:0 };
+    return {
+      hangout: num(b.hangout) + num(d.hangout),
+      savings: num(b.savings) + num(d.savings),
+      ps:      num(b.ps)      + num(d.ps)
+    };
+  }).catch(fail);
+}
+
+/** Set balances to exact values (manual correction only). */
+function setBalances(next){
+  state.balances = next;
+  saveCache();
+  if(ref) ref.child("balances").set(next).catch(fail);
+}
+
+/** Per-entry writes so one device never wipes another device's history. */
+function writeEntry(e){ if(ref) ref.child("history/" + e.id).set(e).catch(fail); }
+function eraseEntry(id){ if(ref) ref.child("history/" + id).remove().catch(fail); }
+function writeGoal(g){ if(ref) ref.child("goals/" + g.id).set(g).catch(fail); }
+function eraseGoal(id){ if(ref) ref.child("goals/" + id).remove().catch(fail); }
 
 /* =========================================================================
    4. UI HELPERS
@@ -688,6 +806,8 @@ function render(){
 
   renderHistory();
   renderGoals();
+  renderStats();
+  renderPace();
   renderChat();
   updatePurchaseAdvice();
 }
@@ -769,9 +889,7 @@ function addAllowance(type){
     savings: s.savings*scale,
     ps:      s.ps*scale
   };
-  state.balances.hangout += add.hangout;
-  state.balances.savings += add.savings;
-  state.balances.ps      += add.ps;
+  applyDelta(add);
   state.monthType = type;
   state.nextPlan  = null;                     // plan consumed
   log({ type:"allowance", name:"Allowance received", amount:state.allowanceAmount,
@@ -852,9 +970,7 @@ function renderChangeOpts(){
 function changeMonth(type){
   const p = changePreview(type);
   if(!p || type === state.monthType){ closeSheets(); return; }
-  state.balances.hangout += p.delta.hangout;
-  state.balances.savings += p.delta.savings;
-  state.balances.ps      += p.delta.ps;
+  applyDelta(p.delta);
   // Store the split as it now stands so a later change moves the right amount.
   p.entry.split = {
     hangout: num(p.entry.split.hangout) + p.delta.hangout,
@@ -862,6 +978,7 @@ function changeMonth(type){
     ps:      num(p.entry.split.ps)      + p.delta.ps
   };
   p.entry.monthType = type;
+  writeEntry(p.entry);
   const from = state.monthType;
   state.monthType = type;
   log({ type:"replan", name:"Switched to " + SPLITS[type].label, amount:0,
@@ -883,7 +1000,10 @@ function setPlan(type){
    ========================================================================= */
 function log(entry){
   const id = uid();
-  state.history[id] = Object.assign({ id, ts: Date.now() }, entry);
+  const e = Object.assign({ id, ts: Date.now() }, entry);
+  state.history[id] = e;
+  writeEntry(e);
+  return e;
 }
 
 function pickCat(c){
@@ -912,7 +1032,9 @@ function addPurchase(){
   const name  = document.getElementById("pName").value.trim() || "Purchase";
   const price = num(document.getElementById("pPrice").value);
   if(price <= 0){ toast("Enter a price first"); return; }
-  state.balances[purchaseCat] -= price;
+  const d = { hangout:0, savings:0, ps:0 };
+  d[purchaseCat] = -price;
+  applyDelta(d);
   log({ type:"purchase", name, amount:-price, category:purchaseCat });
   document.getElementById("pName").value = "";
   document.getElementById("pPrice").value = "";
@@ -926,15 +1048,11 @@ function removeEntry(id){
   if(!e) return;
   if(!confirm(`Undo “${e.name}”? Balances will be reversed.`)) return;
   if(e.type === "allowance" && e.split){
-    state.balances.hangout -= num(e.split.hangout);
-    state.balances.savings -= num(e.split.savings);
-    state.balances.ps      -= num(e.split.ps);
+    applyDelta({ hangout:-num(e.split.hangout), savings:-num(e.split.savings), ps:-num(e.split.ps) });
   }else if(e.type === "edit" && e.before){
-    state.balances = { hangout:num(e.before.hangout), savings:num(e.before.savings), ps:num(e.before.ps) };
+    setBalances({ hangout:num(e.before.hangout), savings:num(e.before.savings), ps:num(e.before.ps) });
   }else if(e.type === "replan" && e.delta){
-    state.balances.hangout -= num(e.delta.hangout);
-    state.balances.savings -= num(e.delta.savings);
-    state.balances.ps      -= num(e.delta.ps);
+    applyDelta({ hangout:-num(e.delta.hangout), savings:-num(e.delta.savings), ps:-num(e.delta.ps) });
     const a = lastAllowance();
     if(a && a.split){
       a.split = {
@@ -943,11 +1061,15 @@ function removeEntry(id){
         ps:      num(a.split.ps)      - num(e.delta.ps)
       };
       if(e.from){ a.monthType = e.from; state.monthType = e.from; }
+      writeEntry(a);
     }
   }else if(e.type === "purchase"){
-    state.balances[e.category] -= e.amount;    // amount is negative → adds back
+    const d = { hangout:0, savings:0, ps:0 };
+    d[e.category] = -e.amount;                 // amount is negative → adds back
+    applyDelta(d);
   }
   delete state.history[id];
+  eraseEntry(id);
   push(); render(); toast("Entry undone");
 }
 
@@ -965,7 +1087,7 @@ function saveEdit(){
     ps:      num(document.getElementById("eP").value)
   };
   const diff = (after.hangout+after.savings+after.ps) - (before.hangout+before.savings+before.ps);
-  state.balances = after;
+  setBalances(after);
   log({ type:"edit", name:"Balances corrected", amount:diff, category:"all", before, after });
   push(); render(); toast("Balances saved");
 }
@@ -985,6 +1107,7 @@ function addGoal(){
   if(!name || target <= 0){ toast("Add a name and a target"); return; }
   const id = uid();
   state.goals[id] = { id, name, target, emoji, ts: Date.now() };
+  writeGoal(state.goals[id]);
   document.getElementById("gName").value = "";
   document.getElementById("gTarget").value = "";
   document.getElementById("gEmoji").value = "";
@@ -992,11 +1115,213 @@ function addGoal(){
 }
 function removeGoal(id){
   if(!confirm("Delete this goal?")) return;
-  delete state.goals[id]; push(); render();
+  delete state.goals[id]; eraseGoal(id); push(); render();
 }
 
 /* =========================================================================
-   9. FREE RULE-BASED MONEY ADVISOR (no paid APIs)
+   9. ANALYTICS — everything derived from the history log
+   ========================================================================= */
+const DAY = 864e5;
+const monthKey = ts => { const d = new Date(ts); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0"); };
+const monthLabel = key => new Date(key + "-01").toLocaleDateString("en-GB",{month:"short"});
+const thisMonth = () => monthKey(Date.now());
+
+/** Purchases only, optionally limited to one month. */
+function purchases(key){
+  return histArr().filter(e => e.type === "purchase" && (!key || monthKey(e.ts) === key));
+}
+/** Spending per category for a month: { hangout, savings, ps, total } */
+function spendByCat(key){
+  const out = { hangout:0, savings:0, ps:0, total:0 };
+  purchases(key).forEach(e => {
+    const v = -e.amount;
+    if(out[e.category] !== undefined) out[e.category] += v;
+    out.total += v;
+  });
+  return out;
+}
+/** Allowance money received in a month. */
+function receivedIn(key){
+  return histArr().filter(e => e.type === "allowance" && monthKey(e.ts) === key)
+                  .reduce((s,e) => s + num(e.amount), 0);
+}
+/** The last `n` month keys, oldest first, including the current one. */
+function lastMonths(n){
+  const keys = [], d = new Date();
+  for(let i = n-1; i >= 0; i--){
+    const x = new Date(d.getFullYear(), d.getMonth() - i, 1);
+    keys.push(x.getFullYear() + "-" + String(x.getMonth()+1).padStart(2,"0"));
+  }
+  return keys;
+}
+/** Previous month key relative to `key`. */
+function prevMonth(key){
+  const [y,m] = key.split("-").map(Number);
+  const d = new Date(y, m-2, 1);
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+}
+
+/** Days since the last purchase — the "no spending" streak. */
+function noSpendStreak(){
+  const p = purchases();
+  if(!p.length) return 0;
+  return Math.floor((Date.now() - p[0].ts) / DAY);
+}
+/** Consecutive months (ending with the previous full month) where you spent less than you got. */
+function saveStreak(){
+  let n = 0, key = prevMonth(thisMonth());
+  for(let i = 0; i < 24; i++){
+    const got = receivedIn(key), spent = spendByCat(key).total;
+    if(got > 0 && spent < got){ n++; key = prevMonth(key); } else break;
+  }
+  return n;
+}
+
+/**
+ * Are you burning through hangout money faster than the month is passing?
+ * Returns null when there is nothing to judge yet.
+ */
+function pace(){
+  const key = thisMonth(), got = receivedIn(key);
+  if(!got) return null;
+  const spent = spendByCat(key).total;
+  const d = new Date(), days = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  const elapsed = d.getDate() / days;                 // 0..1 through the month
+  const burned  = Math.min(1, spent / got);
+  return { elapsed, burned, spent, got, ahead: burned - elapsed };
+}
+
+/** Human-readable observations about the numbers. */
+function insights(){
+  const key = thisMonth(), prev = prevMonth(key);
+  const now = spendByCat(key), before = spendByCat(prev);
+  const got = receivedIn(key);
+  const out = [];
+
+  if(!histArr().length){
+    return [{ icon:"👋", text:"No data yet. Add your allowance and a few purchases and I'll start spotting patterns." }];
+  }
+  if(before.total > 0 || now.total > 0){
+    const diff = now.total - before.total;
+    out.push(Math.abs(diff) < 0.5
+      ? { icon:"⚖️", text:`You're spending about the same as ${monthLabel(prev)} (${money(now.total)} SAR).` }
+      : { icon: diff > 0 ? "📈" : "📉",
+          text:`You spent ${money(Math.abs(diff))} SAR ${diff > 0 ? "more" : "less"} than ${monthLabel(prev)} (${money(now.total)} vs ${money(before.total)} SAR).` });
+  }
+  const top = ["hangout","savings","ps"].sort((a,b) => now[b] - now[a])[0];
+  if(now[top] > 0) out.push({ icon:CATS[top].emoji,
+    text:`Your biggest spending category this month is ${CATS[top].label} — ${money(now[top])} SAR (${Math.round(now[top]/now.total*100)}% of everything you spent).` });
+
+  if(got > 0){
+    const saved = got - now.total;
+    out.push(saved >= 0
+      ? { icon:"🏦", text:`You kept ${money(saved)} SAR of the ${money(got)} SAR you received this month.` }
+      : { icon:"⚠️", text:`You spent ${money(-saved)} SAR more than you received this month — that's coming out of old money.` });
+  }
+  const p = pace();
+  if(p && p.ahead > .2) out.push({ icon:"🐎",
+    text:`You're ${Math.round(p.ahead*100)}% ahead of pace: ${Math.round(p.burned*100)}% of this month's money is gone but only ${Math.round(p.elapsed*100)}% of the month is.` });
+
+  const gs = goalArr();
+  if(gs.length){
+    const g = gs.find(x => state.balances.savings < x.target);
+    out.push(g
+      ? { icon:"🎯", text:`${g.emoji} ${g.name}: ${money(g.target - state.balances.savings)} SAR left. At 85 SAR a month that's about ${Math.ceil((g.target-state.balances.savings)/85)} month(s).` }
+      : { icon:"🏆", text:`All your goals are funded. Consider adding a bigger one.` });
+  }
+  if(state.balances.savings < SAVE_MIN) out.push({ icon:"🛡️",
+    text:`Savings are ${money(SAVE_MIN - state.balances.savings)} SAR below your ${SAVE_MIN} SAR safety line.` });
+  return out;
+}
+
+/** Achievement badges — pure functions of the data, no extra state stored. */
+function badges(){
+  const key = thisMonth(), now = spendByCat(key), got = receivedIn(key);
+  const streak = noSpendStreak(), sav = state.balances.savings;
+  const gs = goalArr();
+  const allowances = histArr().filter(e => e.type === "allowance").length;
+  const hangoutBudget = SPLITS[state.monthType] ? SPLITS[state.monthType].hangout * (state.allowanceAmount/120) : 0;
+  return [
+    { e:"💸", t:"First Allowance",   d:"Log your allowance once",         got: allowances >= 1 },
+    { e:"🏆", t:"Saved 100 SAR",     d:"Savings reach 100 SAR",           got: sav >= 100 },
+    { e:"👑", t:"Saved 300 SAR",     d:"Savings reach 300 SAR",           got: sav >= 300 },
+    { e:"🧘", t:"7 Quiet Days",      d:"7 days with no spending",         got: streak >= 7 },
+    { e:"🎯", t:"Goal Reached",      d:"Fully fund a savings goal",       got: gs.some(g => sav >= g.target) },
+    { e:"🍔", t:"Under Budget",      d:"Stay inside the hangout budget",  got: hangoutBudget > 0 && now.hangout <= hangoutBudget && got > 0 },
+    { e:"📅", t:"Saver Streak",      d:"2 months spending less than you get", got: saveStreak() >= 2 },
+    { e:"🧊", t:"Untouched Savings", d:"A whole month without spending savings", got: got > 0 && now.savings === 0 }
+  ];
+}
+
+/* ---------- Stats screen rendering ---------- */
+function renderStats(){
+  const key = thisMonth(), now = spendByCat(key), got = receivedIn(key);
+  const kept = got - now.total;
+
+  document.getElementById("monthKpis").innerHTML = [
+    ["Received", "+" + money(got), "var(--savings)"],
+    ["Spent",    "−" + money(now.total), "#ff6a61"],
+    ["Kept",     (kept >= 0 ? "" : "−") + money(Math.abs(kept)), kept >= 0 ? "var(--ps)" : "#ff6a61"]
+  ].map(([n,v,c]) => `<div class="kpi"><div class="kv" style="color:${c}">${v}</div><div class="kn">${n} SAR</div></div>`).join("");
+
+  // Donut: share of this month's spending per category (conic-gradient, no library)
+  const parts = ["hangout","savings","ps"].map(c => ({ c, v:now[c] })).filter(x => x.v > 0);
+  const donut = document.getElementById("donut");
+  if(!parts.length){
+    donut.style.background = "conic-gradient(rgba(255,255,255,.14) 0 100%)";
+  }else{
+    let acc = 0;
+    donut.style.background = "conic-gradient(" + parts.map(x => {
+      const from = acc / now.total * 100;
+      acc += x.v;
+      return `${CATS[x.c].color} ${from}% ${acc / now.total * 100}%`;
+    }).join(",") + ")";
+  }
+  document.getElementById("donutTotal").textContent = money(now.total);
+  document.getElementById("donutLegend").innerHTML = ["hangout","savings","ps"].map(c =>
+    `<div><i style="background:${CATS[c].color}"></i>${CATS[c].emoji} ${CATS[c].label}
+      <b>${now.total ? Math.round(now[c]/now.total*100) : 0}%</b></div>`).join("") +
+    `<div style="color:var(--muted);font-size:11.5px">${now.total ? "" : "Nothing spent this month yet."}</div>`;
+
+  // Bars: spending for the last 6 months
+  const keys = lastMonths(6), vals = keys.map(k => spendByCat(k).total);
+  const top = Math.max(...vals, 1);
+  document.getElementById("monthBars").innerHTML = keys.map((k,i) =>
+    `<div><em>${vals[i] ? money(vals[i]) : ""}</em>
+      <u class="${k === key ? "now" : ""}" style="height:${Math.max(2, vals[i]/top*100)}%"></u>
+      <s>${monthLabel(k)}</s></div>`).join("");
+
+  document.getElementById("insights").innerHTML = insights()
+    .map(i => `<div class="ins"><b>${i.icon}</b><span>${escapeHTML(i.text)}</span></div>`).join("");
+
+  const st = noSpendStreak(), sv = saveStreak();
+  document.getElementById("streaks").innerHTML = [
+    ["🧘", st, "days no spending"],
+    ["📅", sv, "saving months"],
+    ["🧾", purchases(key).length, "buys this month"]
+  ].map(([e,v,n]) => `<div class="kpi"><div class="kv">${e} ${v}</div><div class="kn">${n}</div></div>`).join("");
+
+  document.getElementById("badges").innerHTML = badges().map(b =>
+    `<div class="badge ${b.got ? "" : "locked"}"><div class="be">${b.e}</div>
+      <div><div class="bt">${b.t}</div><div class="bd">${b.got ? "Unlocked" : b.d}</div></div></div>`).join("");
+}
+
+/** Warning banner on Home when money is going out faster than the month passes. */
+function renderPace(){
+  const el = document.getElementById("paceCard");
+  const p = pace();
+  if(!p || p.ahead <= .15){ el.innerHTML = ""; return; }
+  const bad = p.ahead > .35;
+  el.innerHTML = `<div class="card warn ${bad?"bad":""}" style="padding:15px">
+    <div style="font-size:14.5px;font-weight:700">${bad ? "🚨 Slow down" : "⚠️ Spending fast"}</div>
+    <div style="font-size:12.5px;color:var(--text);opacity:.85;margin-top:5px;line-height:1.5">
+      You've used ${Math.round(p.burned*100)}% of this month's ${money(p.got)} SAR but only ${Math.round(p.elapsed*100)}% of the month has passed.
+      ${bad ? "Try no-spend days until the next allowance." : "Keep the next few days cheap and you're fine."}
+    </div></div>`;
+}
+
+/* =========================================================================
+   10. FREE RULE-BASED MONEY ADVISOR (no paid APIs, nothing secret in the client)
    ========================================================================= */
 
 /** Rough price guesses so questions like "trampoline and Herfy" can be costed. */
@@ -1036,94 +1361,201 @@ function parseQuestion(q){
 }
 
 /**
- * The advisor. Pure rules over balances, history and goals:
- *  - keep at least SAVE_MIN in savings when possible
- *  - don't burn savings on small impulse buys
- *  - respect upcoming goals
+ * The advisor: a rule-based financial coach. It never answers with a bare yes/no —
+ * every answer shows the numbers it used, the case for, the case against, and what
+ * your balances look like afterwards. All of it runs on-device, so there is no API
+ * key and nothing secret in this file.
  */
-function advise(q){
-  const b = state.balances, t = total();
-  const lower = q.toLowerCase();
-  const gs = goalArr();
-  const spent30 = histArr()
-      .filter(e => e.type === "purchase" && Date.now() - e.ts < 30*864e5)
-      .reduce((s,e) => s + -e.amount, 0);
 
-  // ----- status / overview questions -----
-  if(/how am i|status|doing|summar|overview|report/.test(lower)){
-    const lines = [
-      `📊 You have ${money(t)} SAR total.`,
-      `🍔 Hangout ${money(b.hangout)} · 🏦 Savings ${money(b.savings)} · 🎮 PS ${money(b.ps)} SAR`,
-      `🧾 Spent in the last 30 days: ${money(spent30)} SAR.`
-    ];
-    lines.push(b.savings >= SAVE_MIN
-      ? `✅ Savings are above your ${SAVE_MIN} SAR safety line — nice.`
-      : `⚠️ Savings are below ${SAVE_MIN} SAR. Try to add ${money(SAVE_MIN-b.savings)} SAR before spending more.`);
-    if(gs.length){
-      const g = gs.find(x => b.savings < x.target) || gs[0];
-      const left = Math.max(0, g.target - b.savings);
-      lines.push(left ? `🎯 ${g.emoji} ${g.name}: ${money(left)} SAR to go.`
-                      : `🎯 ${g.emoji} ${g.name} is fully funded!`);
-    }
-    const plan = SPLITS[plannedType()];
-    lines.push(`📅 Next allowance plan: ${plan.emoji} ${plan.label} (${splitText(plannedType())}).`);
+/** How much reaches savings from one allowance under the planned month type. */
+function monthlySavingRate(){
+  const s = SPLITS[plannedType()];
+  return s.savings * (state.allowanceAmount / 120);
+}
+
+/** Months until savings can cover `amount`, using the planned saving rate. */
+function monthsToAfford(amount){
+  const left = amount - state.balances.savings;
+  if(left <= 0) return 0;
+  const rate = Math.max(1, monthlySavingRate());
+  return Math.ceil(left / rate);
+}
+
+/** Build a full reasoned verdict for spending `amount` from `cat`. */
+function verdict(amount, cat, label){
+  const b = state.balances, gs = goalArr();
+  const bal = b[cat], c = CATS[cat], after = bal - amount;
+  const savingsAfter = cat === "savings" ? b.savings - amount : b.savings;
+  const goal = gs.find(g => b.savings < g.target);
+  const p = pace();
+  const pros = [], cons = [];
+
+  // --- the case for ---
+  if(after >= 0) pros.push(`It fits: ${c.label} has ${money(bal)} SAR, so the money is already there.`);
+  if(cat === "hangout" && after >= 0)
+    pros.push(`That's what hangout money is for — spending it does not touch your savings or your goals.`);
+  if(savingsAfter >= SAVE_MIN)
+    pros.push(`Your savings stay at ${money(savingsAfter)} SAR, still above your ${SAVE_MIN} SAR safety line.`);
+  if(!goal && gs.length) pros.push(`All your goals are already funded, so nothing gets delayed.`);
+  if(amount <= 20) pros.push(`It's small (${money(amount)} SAR) — it won't change your month much.`);
+
+  // --- the case against ---
+  if(after < 0) cons.push(`${c.label} only has ${money(bal)} SAR, so you're ${money(-after)} SAR short.`);
+  if(after >= 0 && cat === "hangout" && after < 15)
+    cons.push(`It leaves only ${money(after)} SAR of hangout money for the rest of the month.`);
+  if(savingsAfter < SAVE_MIN)
+    cons.push(`Savings would drop to ${money(savingsAfter)} SAR, under your ${SAVE_MIN} SAR safety line.`);
+  if(goal && cat === "savings")
+    cons.push(`${goal.emoji} ${goal.name} gets pushed back by roughly ${Math.max(1, Math.ceil(amount/Math.max(1,monthlySavingRate())*10)/10)} month.`);
+  if(p && p.ahead > .2)
+    cons.push(`You're already spending fast: ${Math.round(p.burned*100)}% of this month's money is gone with ${Math.round((1-p.elapsed)*100)}% of the month still to go.`);
+  if(amount >= state.allowanceAmount * .5)
+    cons.push(`It's ${Math.round(amount/state.allowanceAmount*100)}% of a whole allowance — that's a big one-time hit.`);
+
+  // --- the call ---
+  let call, plan = "";
+  if(after >= 0 && savingsAfter >= SAVE_MIN && !(p && p.ahead > .35)){
+    call = `✅ Go for it.`;
+  }else if(after >= 0 && savingsAfter < SAVE_MIN){
+    call = `🤔 You can, but I'd wait.`;
+    plan = `Keeping ${SAVE_MIN} SAR saved is your own rule. In ${monthsToAfford(amount + SAVE_MIN)} month(s) of saving you could buy it without breaking it.`;
+  }else if(after >= 0){
+    call = `🤔 Possible, but not today.`;
+    plan = `Give it a few days — if you still want it after that, it's not an impulse buy.`;
+  }else if(cat !== "savings" && b.savings - (-after) >= SAVE_MIN){
+    call = `🟡 Not from ${c.label}, but doable.`;
+    plan = `Top it up with ${money(-after)} SAR from savings and you'd still have ${money(b.savings + after)} SAR saved. Only worth it if you really want this.`;
+  }else if(total() >= amount){
+    call = `❌ Not right now.`;
+    plan = `Covering it would mean draining savings to ${money(b.savings + after)} SAR. Wait for the next allowance (${money(state.allowanceAmount)} SAR).`;
+  }else{
+    call = `❌ You can't afford it yet.`;
+    plan = `You have ${money(total())} SAR in total. At your current plan that's about ${monthsToAfford(amount)} month(s) of saving away.`;
+  }
+
+  const afterLine = cat === "savings"
+    ? `🏦 Savings ${money(bal)} → ${money(after)} SAR${goal ? `, and ${goal.name} would need ${money(Math.max(0, goal.target - Math.max(0,after)))} SAR` : ""}`
+    : `${c.emoji} ${c.label} ${money(bal)} → ${money(after)} SAR · total ${money(total())} → ${money(total() - amount)} SAR`;
+
+  return [
+    `🧮 ${label} ≈ ${money(amount)} SAR, paid from ${c.emoji} ${c.label}.`,
+    ``,
+    `✅ Why it's a good idea:`,
+    ...(pros.length ? pros.map(x => "• " + x) : ["• Honestly, not much going for it right now."]),
+    ``,
+    `⚠️ Why it might not be:`,
+    ...(cons.length ? cons.map(x => "• " + x) : ["• Nothing really — it's a safe buy."]),
+    ``,
+    `📉 After you spend:`,
+    `• ${afterLine}`,
+    ``,
+    `${call}${plan ? " " + plan : ""}`
+  ].join("\n");
+}
+
+function advise(q){
+  const b = state.balances, t = total(), gs = goalArr();
+  const lower = q.toLowerCase();
+  const key = thisMonth(), now = spendByCat(key), got = receivedIn(key);
+  const p = pace();
+
+  // ---------- "am I spending too much?" ----------
+  if(/spend(ing)? too much|too fast|overspend|spending ok|am i ok/.test(lower)){
+    const prev = spendByCat(prevMonth(key)).total;
+    const lines = [`🧾 This month you've spent ${money(now.total)} SAR out of the ${money(got)} SAR you received.`];
+    if(prev > 0) lines.push(`Last month at this point you'd spent ${money(prev)} SAR in total, so you're ${now.total > prev ? "above" : "below"} that.`);
+    if(p) lines.push(`You've used ${Math.round(p.burned*100)}% of this month's money and ${Math.round(p.elapsed*100)}% of the month has passed.`);
+    lines.push(``);
+    if(p && p.ahead > .35) lines.push(`🚨 Yes — you're spending too fast. Aim for no-spend days until the next allowance, and keep purchases under 20 SAR.`);
+    else if(p && p.ahead > .15) lines.push(`⚠️ Slightly fast, but recoverable. Skip one outing this week and you're back on track.`);
+    else lines.push(`✅ No, you're fine. Your spending is in line with how far the month has gone.`);
+    if(now.savings > 0) lines.push(`One thing though: ${money(now.savings)} SAR of that came out of 🏦 Savings — that money is meant for your goals.`);
     return lines.join("\n");
   }
 
-  // ----- month type advice -----
-  if(/hangout month|which month|month type|should i pick/.test(lower)){
-    const need = gs.length ? Math.max(0, gs[0].target - b.savings) : 0;
-    return need > 60
-      ? `🏠 Go with a No Hangout Month. You still need ${money(need)} SAR for ${gs[0].name}, and 85 SAR/month into savings gets you there fastest.`
-      : `🍔 A Hangout Month is fine — your savings goals are close or covered, so 65 SAR of fun money won't hurt.`;
+  // ---------- "how long until my goal?" ----------
+  if(/how long|when can i|how many months|until.*(goal|afford)|eta/.test(lower)){
+    const g = gs.find(x => lower.includes(x.name.toLowerCase())) || gs.find(x => b.savings < x.target) || gs[0];
+    if(!g) return `You don't have a goal yet. Add one in the Goals tab (name + target) and I'll tell you exactly how many months it takes at your current saving rate.`;
+    const left = g.target - b.savings;
+    if(left <= 0) return `🎉 ${g.emoji} ${g.name} is already covered — you have ${money(b.savings)} SAR saved against a ${money(g.target)} SAR target. You can buy it today and still have ${money(b.savings - g.target)} SAR left.`;
+    const rate = monthlySavingRate(), m = monthsToAfford(g.target);
+    return [
+      `🎯 ${g.emoji} ${g.name} — target ${money(g.target)} SAR, saved ${money(b.savings)} SAR, ${money(left)} SAR to go (${Math.round(b.savings/g.target*100)}% there).`,
+      ``,
+      `At your planned ${SPLITS[plannedType()].label} you put ${money(rate)} SAR into savings each month, so about ${m} more month(s).`,
+      `If you switch to 🏠 No Hangout Months (${money(85*(state.allowanceAmount/120))} SAR to savings) it drops to about ${Math.ceil(left/Math.max(1,85*(state.allowanceAmount/120)))} month(s).`,
+      `Skipping ${Math.ceil(left/30)} fast-food trips would also cover it.`
+    ].join("\n");
   }
 
-  // ----- goal-specific -----
-  const goalHit = gs.find(g => lower.includes(g.name.toLowerCase()));
-  if(goalHit && /can i|afford|buy|enough/.test(lower)){
-    const left = goalHit.target - b.savings;
-    if(left <= 0) return `🎉 Yes! ${goalHit.emoji} ${goalHit.name} costs ${money(goalHit.target)} SAR and you already have ${money(b.savings)} SAR in savings. Go get it — after buying you'd still have ${money(b.savings-goalHit.target)} SAR saved.`;
-    const months = Math.ceil(left / 85);
-    return `⏳ Not yet. ${goalHit.name} needs ${money(goalHit.target)} SAR and savings are ${money(b.savings)} SAR — ${money(left)} SAR short.\nWith No Hangout Months (85 SAR to savings) you'd get there in about ${months} month${months>1?"s":""}. Skip ~${Math.ceil(left/30)} fast-food trips and it's even faster.`;
-  }
-
-  // ----- purchase / affordability -----
-  const p = parseQuestion(q);
-  if(p.amount > 0 && /can i|afford|should i|worth|buy|go |get /.test(lower)){
-    const list = p.items.length ? p.items.map(i => `${i.label} ~${i.price}`).join(" + ") : `${money(p.amount)} SAR`;
-    const bal = b[p.cat], cat = CATS[p.cat];
-    const after = bal - p.amount;
-    const out = [`🧮 ${list} ≈ ${money(p.amount)} SAR from ${cat.emoji} ${cat.label} (${money(bal)} SAR).`];
-
-    if(after >= 0){
-      out.push(`✅ Yes, you can. You'd have ${money(after)} SAR left in ${cat.label}.`);
-      if(p.cat === "hangout" && after < 10) out.push(`⚠️ That's almost all of your hangout money — nothing left for the rest of the month.`);
-      if(p.cat === "savings" && after < SAVE_MIN) out.push(`⚠️ It drops savings under your ${SAVE_MIN} SAR line. Only do it if it's a real goal, not an impulse.`);
-      const g = gs.find(x => b.savings < x.target);
-      if(g && p.cat === "savings") out.push(`🎯 It also pushes ${g.name} back by about ${Math.ceil(p.amount/85*10)/10} month.`);
-    }else{
-      const short = -after;
-      out.push(`❌ Not from ${cat.label} — you're ${money(short)} SAR short.`);
-      if(p.cat !== "savings" && b.savings - short >= SAVE_MIN)
-        out.push(`💡 You could cover it from savings and still keep ${money(b.savings-short)} SAR saved, but only if it's worth it.`);
-      else if(b.savings - short >= 0)
-        out.push(`💡 Savings could cover it but you'd drop to ${money(b.savings-short)} SAR — under your ${SAVE_MIN} SAR line. Better to wait for the next allowance.`);
-      else
-        out.push(`💡 Even with savings it doesn't fit (${money(t)} SAR total). Wait for the next allowance.`);
-      if(p.amount <= 40) out.push(`🕒 It's a small amount — next allowance is only a few weeks away.`);
+  // ---------- monthly summary ----------
+  if(/how am i|status|doing|summar|overview|report|this month/.test(lower)){
+    const lines = [
+      `📊 Total ${money(t)} SAR — 🍔 ${money(b.hangout)} · 🏦 ${money(b.savings)} · 🎮 ${money(b.ps)}.`,
+      `💸 Received this month: ${money(got)} SAR · 🧾 spent: ${money(now.total)} SAR · kept: ${money(got - now.total)} SAR.`
+    ];
+    if(now.total > 0){
+      const top = ["hangout","savings","ps"].sort((x,y) => now[y] - now[x])[0];
+      lines.push(`${CATS[top].emoji} Most of it went to ${CATS[top].label} (${money(now[top])} SAR).`);
     }
-    return out.join("\n");
+    lines.push(b.savings >= SAVE_MIN
+      ? `✅ Savings are above your ${SAVE_MIN} SAR safety line.`
+      : `⚠️ Savings are ${money(SAVE_MIN - b.savings)} SAR below your ${SAVE_MIN} SAR safety line.`);
+    const g = gs.find(x => b.savings < x.target);
+    if(g) lines.push(`🎯 ${g.emoji} ${g.name}: ${money(g.target - b.savings)} SAR to go (~${monthsToAfford(g.target)} month(s)).`);
+    else if(gs.length) lines.push(`🏆 Every goal is funded.`);
+    const st = noSpendStreak();
+    if(st >= 3) lines.push(`🧘 ${st} days without spending — nice streak.`);
+    lines.push(`📅 Next allowance plan: ${SPLITS[plannedType()].emoji} ${SPLITS[plannedType()].label} (${splitText(plannedType())}).`);
+    return lines.join("\n");
   }
 
-  // ----- save-more / advice -----
-  if(/save|goal|how (do|can) i/.test(lower)){
+  // ---------- which month type ----------
+  if(/hangout month|which month|month type|should i pick|no hangout/.test(lower)){
+    const g = gs.find(x => b.savings < x.target);
+    const need = g ? g.target - b.savings : 0;
+    return need > 60
+      ? `🏠 Pick a No Hangout Month. You still need ${money(need)} SAR for ${g.emoji} ${g.name}, and 85 SAR a month into savings gets you there in about ${Math.ceil(need/85)} month(s) instead of ${Math.ceil(need/40)}.\nYou'd still have 20 SAR for one cheap outing.`
+      : `🍔 A Hangout Month is fine. ${g ? `${g.name} only needs ${money(need)} SAR more, so 40 SAR of saving still covers it soon.` : `You have no goal waiting on savings.`}\nRemember you can change it later with 🔁 Change This Month if plans fall through.`;
+  }
+
+  // ---------- a named goal: "is FC 27 worth buying?" / "can I buy FC 27?" ----------
+  const goalHit = gs.find(g => lower.includes(g.name.toLowerCase()));
+  if(goalHit) return verdict(goalHit.target, "savings", `${goalHit.emoji} ${goalHit.name}`);
+
+  // ---------- generic purchase question ----------
+  const parsed = parseQuestion(q);
+  if(parsed.amount > 0){
+    const label = parsed.items.length
+      ? parsed.items.map(i => `${i.label} ~${money(i.price)}`).join(" + ")
+      : `a ${money(parsed.amount)} SAR purchase`;
+    return verdict(parsed.amount, parsed.cat, label);
+  }
+
+  // ---------- how to save ----------
+  if(/save|goal|how (do|can) i|advice|tip/.test(lower)){
     const g = gs[0];
-    const tip = g ? `For ${g.emoji} ${g.name} (${money(g.target)} SAR) you need ${money(Math.max(0,g.target-b.savings))} SAR more. `: "";
-    return `${tip}Best moves:\n• Pick 🏠 No Hangout Month → 85 SAR straight to savings.\n• Keep hangout spending to one outing (~30 SAR).\n• Never take savings for snacks — that's what hangout money is for.\n• Keep at least ${SAVE_MIN} SAR in savings as your safety line.`;
+    return [
+      g ? `For ${g.emoji} ${g.name} (${money(g.target)} SAR) you need ${money(Math.max(0, g.target - b.savings))} SAR more.` : `Here's how to build savings faster:`,
+      `• Choose 🏠 No Hangout Month → ${money(85*(state.allowanceAmount/120))} SAR straight to savings.`,
+      `• Keep hangout spending to one outing (~30 SAR) a week.`,
+      `• Never pay for snacks out of 🏦 Savings — that's what hangout money is for.`,
+      `• Keep at least ${SAVE_MIN} SAR saved as your safety line.`,
+      `• Before any purchase over 40 SAR, ask me first.`
+    ].join("\n");
   }
 
-  // ----- fallback -----
-  return `I look at your balances, goals and spending. Try asking:\n• “Can I buy FC 27?”\n• “Can I go trampoline and Herfy?”\n• “Is a 60 SAR purchase worth it?”\n• “How am I doing this month?”\n\nRight now: ${money(t)} SAR total — 🍔 ${money(b.hangout)} · 🏦 ${money(b.savings)} · 🎮 ${money(b.ps)}.`;
+  // ---------- fallback ----------
+  return [
+    `I can only answer money questions, but I read your real numbers when I do. Right now: ${money(t)} SAR total — 🍔 ${money(b.hangout)} · 🏦 ${money(b.savings)} · 🎮 ${money(b.ps)}.`,
+    ``,
+    `Try:`,
+    `• "Can I buy FC 27?" or "Is a 90 SAR keyboard worth it?"`,
+    `• "Can I go trampoline and Herfy today?"`,
+    `• "Am I spending too much?"`,
+    `• "How long until I can afford my goal?"`
+  ].join("\n");
 }
 
 function renderChat(){
@@ -1161,7 +1593,7 @@ function resetAll(){
   if(!confirm("Are you really sure?")) return;
   state.balances = { hangout:0, savings:0, ps:0 };
   state.history = {}; state.goals = {}; state.nextPlan = null; state.monthType = "unsure";
-  push(); render(); toast("Everything reset");
+  pushAll(); render(); toast("Everything reset");
 }
 
 /* =========================================================================
