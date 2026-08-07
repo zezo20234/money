@@ -275,7 +275,8 @@ nav.tabs button[data-on="1"]{color:var(--text);transform:translateY(-2px)}
     <div class="card hero">
       <div class="label">Total Money</div>
       <div class="total" id="totalVal">0<small>SAR</small></div>
-      <div class="pill" id="monthPill">🗓️ —</div>
+      <div class="pill" id="monthPill" onclick="openChangeMonth()" style="cursor:pointer">🗓️ —</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:8px">Tap the month to change this month's plan</div>
     </div>
 
     <div class="tiles">
@@ -290,8 +291,9 @@ nav.tabs button[data-on="1"]{color:var(--text);transform:translateY(-2px)}
     <button class="btn green" onclick="openAllowance()">💸 I Got Allowance (+120 SAR)</button>
     <div class="row" style="margin-top:10px">
       <button class="btn primary" onclick="openSheet('purchaseSheet')">🛍️ Add Purchase</button>
-      <button class="btn ghost" onclick="openPlanNext()">📅 Plan Next</button>
+      <button class="btn ghost" onclick="openChangeMonth()">🔁 Change This Month</button>
     </div>
+    <button class="btn ghost" style="margin-top:10px" onclick="openPlanNext()">📅 Plan Next Allowance</button>
 
     <div class="sect"><h2>Next Allowance Plan</h2></div>
     <div class="card" id="planCard" style="padding:16px"></div>
@@ -412,6 +414,17 @@ nav.tabs button[data-on="1"]{color:var(--text);transform:translateY(-2px)}
   <button class="opt" onclick="addAllowance('unsure')">
     <span class="oe">❓</span><span><span class="ot">Not Sure Yet</span>
     <span class="od" id="optUnsure"></span></span></button>
+  <button class="btn ghost sm" onclick="closeSheets()">Cancel</button>
+</div>
+
+<!-- Change THIS month's plan (re-splits the allowance you already received) -->
+<div class="sheet" id="monthSheet">
+  <div class="grab"></div>
+  <h3>Change This Month 🔁</h3>
+  <p class="hint">Changed your mind after getting your allowance? Pick the real month type and I'll
+     move money between your categories — <b>your total stays the same</b> and anything you already
+     spent is never touched.</p>
+  <div id="changeOpts"></div>
   <button class="btn ghost sm" onclick="closeSheets()">Cancel</button>
 </div>
 
@@ -682,13 +695,19 @@ function render(){
 function itemHTML(e, withDelete){
   const cat = CATS[e.category] || {emoji:"💰", label:"Money"};
   const pos = e.amount > 0;
-  const ico = e.type === "allowance" ? "💸" : e.type === "edit" ? "✏️" : cat.emoji;
+  const ico = e.type === "allowance" ? "💸" : e.type === "edit" ? "✏️"
+            : e.type === "replan" ? "🔁" : cat.emoji;
   const sub = (e.type === "allowance" ? (SPLITS[e.monthType] ? SPLITS[e.monthType].label : "Allowance")
-              : e.type === "edit" ? "Manual fix" : cat.label) + " • " + fmtDate(e.ts);
+              : e.type === "edit" ? "Manual fix"
+              : e.type === "replan" ? "Month type changed" : cat.label) + " • " + fmtDate(e.ts);
+  // A re-split moves money instead of adding or removing it, so show the movement.
+  const amt = e.type === "replan"
+    ? `<div class="amt" style="color:var(--muted);font-size:13px">⇄ ${money(Math.abs(num(e.delta && e.delta.hangout)))}</div>`
+    : `<div class="amt ${pos?"pos":"neg"}">${pos?"+":"−"}${money(Math.abs(e.amount))}</div>`;
   return `<div class="item">
     <div class="ico">${ico}</div>
     <div class="mid"><div class="t">${escapeHTML(e.name)}</div><div class="d">${sub}</div></div>
-    <div class="amt ${pos?"pos":"neg"}">${pos?"+":"−"}${money(Math.abs(e.amount))}</div>
+    ${amt}
     ${withDelete ? `<button class="x" title="Undo entry" onclick="removeEntry('${e.id}')">✕</button>` : ""}
   </div>`;
 }
@@ -761,6 +780,97 @@ function addAllowance(type){
   toast(`+${money(state.allowanceAmount)} SAR added • ${s.label}`);
 }
 
+/** The most recent allowance entry — the one this month's split came from. */
+function lastAllowance(){ return histArr().find(e => e.type === "allowance" && e.split); }
+
+/**
+ * Work out how money would move if this month's allowance had been split as `type`.
+ * Returns { delta, next, short, entry }; `short` is how much of the move is impossible
+ * because that money has already been spent.
+ */
+function changePreview(type){
+  const e = lastAllowance();
+  if(!e) return null;
+  const s = SPLITS[type], scale = num(e.amount) / 120;
+  const next  = { hangout:s.hangout*scale, savings:s.savings*scale, ps:s.ps*scale };
+  const delta = {
+    hangout: next.hangout - num(e.split.hangout),
+    savings: next.savings - num(e.split.savings),
+    ps:      next.ps      - num(e.split.ps)
+  };
+  // A category can only give away money it still has.
+  let short = 0;
+  ["hangout","savings","ps"].forEach(c => {
+    if(delta[c] < 0){
+      const take = Math.min(-delta[c], Math.max(0, state.balances[c]));
+      short += -delta[c] - take;
+      delta[c] = -take;
+    }
+  });
+  // Scale down what the receiving categories get by whatever could not be moved.
+  if(short > 0){
+    const gain = ["hangout","savings","ps"].reduce((t,c) => t + Math.max(0, delta[c]), 0);
+    if(gain > 0) ["hangout","savings","ps"].forEach(c => {
+      if(delta[c] > 0) delta[c] -= short * (delta[c] / gain);
+    });
+  }
+  return { delta, next, short, entry:e };
+}
+
+function openChangeMonth(){
+  if(!lastAllowance()){ toast("Add your allowance first"); return; }
+  renderChangeOpts();
+  openSheet("monthSheet");
+}
+
+/** Build the three option cards with a live preview of the money movement. */
+function renderChangeOpts(){
+  const cur = state.monthType;
+  document.getElementById("changeOpts").innerHTML = ["hangout","nohangout","unsure"].map(k => {
+    const s = SPLITS[k], p = changePreview(k);
+    let desc;
+    if(k === cur){
+      desc = "This is your current month type.";
+    }else{
+      const moves = [["hangout","🍔"],["savings","🏦"],["ps","🎮"]]
+        .filter(([c]) => Math.abs(p.delta[c]) >= 0.005)
+        .map(([c,em]) => `${em} ${p.delta[c] > 0 ? "+" : "−"}${money(Math.abs(p.delta[c]))}`);
+      desc = moves.length ? moves.join(" · ") + " SAR" : "Nothing to move.";
+      if(p.short > 0) desc += ` ⚠️ ${money(p.short)} SAR of that is already spent, so only what is left moves.`;
+    }
+    const action = k === cur ? 'disabled style="opacity:.5"' : `onclick="changeMonth('${k}')"`;
+    return `<button class="opt" ${action}>
+      <span class="oe">${s.emoji}</span><span><span class="ot">${s.label}${k===cur?" ✓":""}</span>
+      <span class="od">${desc}</span></span></button>`;
+  }).join("");
+}
+
+/**
+ * Re-split the allowance already received: money moves between categories, so the
+ * total never changes and money already spent is never clawed back.
+ */
+function changeMonth(type){
+  const p = changePreview(type);
+  if(!p || type === state.monthType){ closeSheets(); return; }
+  state.balances.hangout += p.delta.hangout;
+  state.balances.savings += p.delta.savings;
+  state.balances.ps      += p.delta.ps;
+  // Store the split as it now stands so a later change moves the right amount.
+  p.entry.split = {
+    hangout: num(p.entry.split.hangout) + p.delta.hangout,
+    savings: num(p.entry.split.savings) + p.delta.savings,
+    ps:      num(p.entry.split.ps)      + p.delta.ps
+  };
+  p.entry.monthType = type;
+  const from = state.monthType;
+  state.monthType = type;
+  log({ type:"replan", name:"Switched to " + SPLITS[type].label, amount:0,
+        category:"all", from, to:type, delta:p.delta });
+  closeSheets(); push(); render();
+  toast(p.short > 0 ? "Moved what was left • " + SPLITS[type].label
+                    : "Now a " + SPLITS[type].label);
+}
+
 /** Choose the month type for the NEXT allowance without touching current money. */
 function setPlan(type){
   state.nextPlan = type;
@@ -821,6 +931,19 @@ function removeEntry(id){
     state.balances.ps      -= num(e.split.ps);
   }else if(e.type === "edit" && e.before){
     state.balances = { hangout:num(e.before.hangout), savings:num(e.before.savings), ps:num(e.before.ps) };
+  }else if(e.type === "replan" && e.delta){
+    state.balances.hangout -= num(e.delta.hangout);
+    state.balances.savings -= num(e.delta.savings);
+    state.balances.ps      -= num(e.delta.ps);
+    const a = lastAllowance();
+    if(a && a.split){
+      a.split = {
+        hangout: num(a.split.hangout) - num(e.delta.hangout),
+        savings: num(a.split.savings) - num(e.delta.savings),
+        ps:      num(a.split.ps)      - num(e.delta.ps)
+      };
+      if(e.from){ a.monthType = e.from; state.monthType = e.from; }
+    }
   }else if(e.type === "purchase"){
     state.balances[e.category] -= e.amount;    // amount is negative → adds back
   }
