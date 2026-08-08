@@ -1247,8 +1247,8 @@
                 <button class="close-btn" onclick="closeModal('loginModal')">&times;</button>
             </div>
             <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" class="form-input" id="loginEmail" placeholder="your@email.com">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-input" id="loginUsername" placeholder="Enter username">
             </div>
             <div class="form-group">
                 <label class="form-label">Password</label>
@@ -1273,12 +1273,12 @@
                 <button class="close-btn" onclick="closeModal('signupModal')">&times;</button>
             </div>
             <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" class="form-input" id="signupEmail" placeholder="your@email.com">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-input" id="signupUsername" placeholder="Choose username">
             </div>
             <div class="form-group">
                 <label class="form-label">Password</label>
-                <input type="password" class="form-input" id="signupPassword" placeholder="•••••••• (min 6 characters)">
+                <input type="password" class="form-input" id="signupPassword" placeholder="•••••••• (min 4 characters)">
             </div>
             <div class="form-group">
                 <label class="form-label">Confirm Password</label>
@@ -1299,8 +1299,7 @@
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, set, get, update, onValue, push, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getDatabase, ref, set, get, update, onValue, push, remove, query, orderByChild, equalTo } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyCugS0qHKstGZArd5vEBzm-DaLZAIDugo",
@@ -1315,7 +1314,6 @@
 
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
-        const auth = getAuth(app);
 
         // Data structure
         let currentUser = null;
@@ -1333,37 +1331,27 @@
 
         // Initialize
         function init() {
-            // Temporarily skip authentication for immediate use
-            currentUser = { uid: 'temp-user', email: 'guest@local' };
-            document.getElementById('userEmail').textContent = 'Guest Mode';
-            document.getElementById('authSection').classList.remove('active');
-            document.getElementById('appContent').classList.add('active');
-            loadUserData();
-
-            // Authentication code (commented out for now)
-            /*
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    currentUser = user;
-                    document.getElementById('userEmail').textContent = user.email;
-                    document.getElementById('authSection').classList.remove('active');
-                    document.getElementById('appContent').classList.add('active');
-                    loadUserData();
-                } else {
-                    currentUser = null;
-                    document.getElementById('authSection').classList.add('active');
-                    document.getElementById('appContent').classList.remove('active');
-                }
-            });
-            */
+            // Check if user is logged in from localStorage
+            const savedUsername = localStorage.getItem('moneyManagerUsername');
+            if (savedUsername) {
+                currentUser = { username: savedUsername };
+                document.getElementById('userEmail').textContent = savedUsername;
+                document.getElementById('authSection').classList.remove('active');
+                document.getElementById('appContent').classList.add('active');
+                loadUserData();
+            } else {
+                currentUser = null;
+                document.getElementById('authSection').classList.add('active');
+                document.getElementById('appContent').classList.remove('active');
+            }
         }
 
         // Load user data
         function loadUserData() {
             if (!currentUser) return;
 
-            const userId = currentUser.uid;
-            const balancesRef = ref(database, `users/${userId}/balances`);
+            const username = currentUser.username;
+            const balancesRef = ref(database, `users/${username}/balances`);
             onValue(balancesRef, (snapshot) => {
                 if (snapshot.exists()) {
                     balances = snapshot.val();
@@ -1374,7 +1362,7 @@
                 }
             });
 
-            const historyRef = ref(database, `users/${userId}/history`);
+            const historyRef = ref(database, `users/${username}/history`);
             onValue(historyRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const historyData = snapshot.val();
@@ -1390,7 +1378,7 @@
                 }
             });
 
-            const goalsRef = ref(database, `users/${userId}/goals`);
+            const goalsRef = ref(database, `users/${username}/goals`);
             onValue(goalsRef, (snapshot) => {
                 if (snapshot.exists()) {
                     goals = Object.values(snapshot.val());
@@ -1585,7 +1573,7 @@
         // Add to history
         function addToHistory(type, amount, category = null, notes = null) {
             if (!currentUser) return;
-            const historyRef = ref(database, `users/${currentUser.uid}/history`);
+            const historyRef = ref(database, `users/${currentUser.username}/history`);
             const newEntry = {
                 type,
                 amount,
@@ -1603,7 +1591,7 @@
                 const excess = balances.hangout - 140;
                 balances.hangout = 140;
                 balances.savings += excess;
-                set(ref(database, `users/${currentUser.uid}/balances`), balances);
+                set(ref(database, `users/${currentUser.username}/balances`), balances);
                 addToHistory('Auto Transfer', excess, 'hangout', `Moved ${excess} SAR from Hangout to Savings (limit exceeded)`);
                 showNotification(`Moved ${excess} SAR to Savings (Hangout limit exceeded)`);
             }
@@ -1611,33 +1599,51 @@
 
         // Modal functions
         window.openAllowanceModal = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
             document.getElementById('allowanceModal').classList.add('active');
             autoCalculateSplit(); // Auto-calculate when modal opens
         };
 
         window.openAddMoneyModal = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
             document.getElementById('addMoneyModal').classList.add('active');
         };
 
         window.openTransferModal = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
             document.getElementById('transferModal').classList.add('active');
         };
 
         window.openPurchaseModal = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
             document.getElementById('purchaseModal').classList.add('active');
         };
 
         window.openEditModal = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
             document.getElementById('editModal').classList.add('active');
         };
 
         window.openGoalsModal = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
             document.getElementById('goalsModal').classList.add('active');
         };
 
@@ -1652,39 +1658,60 @@
 
         // Login function
         window.login = function() {
-            const email = document.getElementById('loginEmail').value;
+            const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
 
-            if (!email || !password) {
+            if (!username || !password) {
                 showNotification('Please fill in all fields', true);
                 return;
             }
 
-            signInWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    closeModal('loginModal');
-                    showNotification('Login successful!');
-                    document.getElementById('loginEmail').value = '';
-                    document.getElementById('loginPassword').value = '';
-                })
-                .catch((error) => {
-                    showNotification('Login failed: ' + error.message, true);
-                });
+            // Check if user exists in database
+            const userRef = ref(database, `users_auth/${username}`);
+            get(userRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const userData = snapshot.val();
+                    if (userData.password === password) {
+                        // Login successful
+                        currentUser = { username: username };
+                        localStorage.setItem('moneyManagerUsername', username);
+                        document.getElementById('userEmail').textContent = username;
+                        document.getElementById('authSection').classList.remove('active');
+                        document.getElementById('appContent').classList.add('active');
+                        closeModal('loginModal');
+                        loadUserData();
+                        showNotification('Login successful!');
+                        document.getElementById('loginUsername').value = '';
+                        document.getElementById('loginPassword').value = '';
+                    } else {
+                        showNotification('Incorrect password', true);
+                    }
+                } else {
+                    showNotification('User not found', true);
+                }
+            }).catch((error) => {
+                showNotification('Login failed: ' + error.message, true);
+            });
         };
 
         // Signup function
         window.signup = function() {
-            const email = document.getElementById('signupEmail').value;
+            const username = document.getElementById('signupUsername').value;
             const password = document.getElementById('signupPassword').value;
             const confirmPassword = document.getElementById('signupConfirmPassword').value;
 
-            if (!email || !password || !confirmPassword) {
+            if (!username || !password || !confirmPassword) {
                 showNotification('Please fill in all fields', true);
                 return;
             }
 
-            if (password.length < 6) {
-                showNotification('Password must be at least 6 characters', true);
+            if (username.length < 3) {
+                showNotification('Username must be at least 3 characters', true);
+                return;
+            }
+
+            if (password.length < 4) {
+                showNotification('Password must be at least 4 characters', true);
                 return;
             }
 
@@ -1693,28 +1720,40 @@
                 return;
             }
 
-            createUserWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    closeModal('signupModal');
-                    showNotification('Account created successfully!');
-                    document.getElementById('signupEmail').value = '';
-                    document.getElementById('signupPassword').value = '';
-                    document.getElementById('signupConfirmPassword').value = '';
-                })
-                .catch((error) => {
-                    showNotification('Signup failed: ' + error.message, true);
-                });
+            // Check if username already exists
+            const userRef = ref(database, `users_auth/${username}`);
+            get(userRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    showNotification('Username already taken', true);
+                } else {
+                    // Create new user
+                    set(userRef, {
+                        username: username,
+                        password: password,
+                        createdAt: new Date().toISOString()
+                    }).then(() => {
+                        closeModal('signupModal');
+                        showNotification('Account created successfully! Please login.');
+                        document.getElementById('signupUsername').value = '';
+                        document.getElementById('signupPassword').value = '';
+                        document.getElementById('signupConfirmPassword').value = '';
+                        openLoginModal();
+                    }).catch((error) => {
+                        showNotification('Signup failed: ' + error.message, true);
+                    });
+                }
+            }).catch((error) => {
+                showNotification('Signup failed: ' + error.message, true);
+            });
         };
 
         // Logout function
         window.logout = function() {
-            signOut(auth)
-                .then(() => {
-                    showNotification('Logged out successfully');
-                })
-                .catch((error) => {
-                    showNotification('Logout failed: ' + error.message, true);
-                });
+            localStorage.removeItem('moneyManagerUsername');
+            currentUser = null;
+            document.getElementById('authSection').classList.add('active');
+            document.getElementById('appContent').classList.remove('active');
+            showNotification('Logged out successfully');
         };
 
         window.closeModal = function(modalId) {
@@ -1775,7 +1814,7 @@
             }
             
             // Update the transaction in Firebase
-            const transactionRef = ref(database, `users/${currentUser.uid}/history/${key}`);
+            const transactionRef = ref(database, `users/${currentUser.username}/history/${key}`);
             update(transactionRef, {
                 amount: newAmount,
                 category: category,
@@ -1783,7 +1822,7 @@
             });
             
             // Update balances
-            set(ref(database, `users/${currentUser.uid}/balances`), balances);
+            set(ref(database, `users/${currentUser.username}/balances`), balances);
             checkHangoutLimit();
             
             closeModal('editTransactionModal');
@@ -1811,11 +1850,11 @@
             }
             
             // Delete from Firebase
-            const transactionRef = ref(database, `users/${currentUser.uid}/history/${key}`);
+            const transactionRef = ref(database, `users/${currentUser.username}/history/${key}`);
             set(transactionRef, null);
             
             // Update balances
-            set(ref(database, `users/${currentUser.uid}/balances`), balances);
+            set(ref(database, `users/${currentUser.username}/balances`), balances);
             checkHangoutLimit();
             
             closeModal('deleteModal');
@@ -1859,13 +1898,10 @@
 
         // Add allowance
         window.addAllowance = function() {
-            // Authentication check temporarily disabled
-            /*
             if (!currentUser) {
                 showNotification('Please login first', true);
                 return;
             }
-            */
 
             const total = parseInt(document.getElementById('allowanceAmount').value);
             const hangout = parseInt(document.getElementById('hangoutSlider').value);
@@ -1882,7 +1918,7 @@
             balances.savings += savings;
             balances.playstation += playstation;
 
-            set(ref(database, `users/${currentUser.uid}/balances`), balances);
+            set(ref(database, `users/${currentUser.username}/balances`), balances);
             addToHistory('Allowance', total, null, `Split: ${hangout}/${savings}/${playstation}`);
             checkHangoutLimit();
             closeModal('allowanceModal');
@@ -1891,7 +1927,11 @@
 
         // Add money
         window.addMoney = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
+
             const bucket = document.getElementById('addMoneyBucket').value;
             const amount = parseInt(document.getElementById('addMoneyAmount').value);
 
@@ -1901,7 +1941,7 @@
             }
 
             balances[bucket] += amount;
-            set(ref(database, `users/${currentUser.uid}/balances`), balances);
+            set(ref(database, `users/${currentUser.username}/balances`), balances);
             addToHistory('Add Money', amount, bucket);
             checkHangoutLimit();
             closeModal('addMoneyModal');
@@ -1910,7 +1950,11 @@
 
         // Transfer money
         window.transferMoney = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
+
             const from = document.getElementById('transferFrom').value;
             const to = document.getElementById('transferTo').value;
             const amount = parseInt(document.getElementById('transferAmount').value);
@@ -1932,7 +1976,7 @@
 
             balances[from] -= amount;
             balances[to] += amount;
-            set(ref(database, `users/${currentUser.uid}/balances`), balances);
+            set(ref(database, `users/${currentUser.username}/balances`), balances);
             addToHistory('Transfer', -amount, from, `Transferred to ${to}`);
             checkHangoutLimit();
             closeModal('transferModal');
@@ -1941,7 +1985,11 @@
 
         // Add purchase
         window.addPurchase = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
+
             const name = document.getElementById('purchaseName').value;
             const cost = parseInt(document.getElementById('purchaseCost').value);
             const category = document.getElementById('purchaseCategory').value;
@@ -1957,7 +2005,7 @@
             }
 
             balances[category] -= cost;
-            set(ref(database, `users/${currentUser.uid}/balances`), balances);
+            set(ref(database, `users/${currentUser.username}/balances`), balances);
             addToHistory('Purchase', -cost, category, name);
             closeModal('purchaseModal');
             showNotification(`Purchase "${name}" recorded`);
@@ -1965,7 +2013,11 @@
 
         // Edit money
         window.editMoney = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
+
             const hangout = parseInt(document.getElementById('editHangout').value);
             const savings = parseInt(document.getElementById('editSavings').value);
             const playstation = parseInt(document.getElementById('editPlaystation').value);
@@ -1984,7 +2036,7 @@
             balances.savings = savings;
             balances.playstation = playstation;
 
-            set(ref(database, `users/${currentUser.uid}/balances`), balances);
+            set(ref(database, `users/${currentUser.username}/balances`), balances);
             addToHistory('Manual Edit', 0, null, `Changed balances: ${oldHangout}→${hangout}, ${oldSavings}→${savings}, ${oldPlaystation}→${playstation}`);
             checkHangoutLimit();
             closeModal('editModal');
@@ -1993,7 +2045,11 @@
 
         // Add goal
         window.addGoal = function() {
-            // Authentication check temporarily disabled
+            if (!currentUser) {
+                showNotification('Please login first', true);
+                return;
+            }
+
             const name = document.getElementById('goalName').value;
             const amount = parseInt(document.getElementById('goalAmount').value);
 
@@ -2002,7 +2058,7 @@
                 return;
             }
 
-            const goalsRef = ref(database, `users/${currentUser.uid}/goals`);
+            const goalsRef = ref(database, `users/${currentUser.username}/goals`);
             push(goalsRef, { name, amount });
             
             document.getElementById('goalName').value = '';
@@ -2118,9 +2174,6 @@
 
         // Initialize app
         init();
-
-        // Show auth section by default
-        document.getElementById('authSection').classList.add('active');
 
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
