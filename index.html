@@ -892,7 +892,10 @@
         <div class="app-content" id="appContent">
             <div class="user-info">
                 <div class="user-email" id="userEmail">user@email.com</div>
-                <button class="logout-btn" onclick="logout()">Logout</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="logout-btn" onclick="openSettingsModal()" style="background: rgba(102, 126, 234, 0.2); border-color: rgba(102, 126, 234, 0.4); color: #667eea;">⚙️ Settings</button>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
             </div>
 
             <div class="header">
@@ -980,12 +983,12 @@
                     Hi! I'm your money advisor. Ask me anything about your finances!
                 </div>
             </div>
-            <div class="quick-questions">
+            <div class="quick-questions" id="quickQuestions">
                 <div class="quick-question" onclick="askAI('Is this worth it?')">Is this worth it?</div>
                 <div class="quick-question" onclick="askAI('Can I buy this?')">Can I buy this?</div>
-                <div class="quick-question" onclick="askAI('Should I spend from savings?')">Should I spend from savings?</div>
-                <div class="quick-question" onclick="askAI('Can I go trampoline and Herfy?')">Can I go trampoline and Herfy?</div>
-                <div class="quick-question" onclick="askAI('How long until I can afford FC 27?')">How long until I can afford FC 27?</div>
+                <div class="quick-question" onclick="askAI('How much do I have for this week?')">How much for this week?</div>
+                <div class="quick-question" onclick="askAI('Will I run out of money?')">Will I run out?</div>
+                <div class="quick-question" onclick="askAI('How long until next allowance?')">Until next allowance?</div>
             </div>
             <div class="chat-input-container" style="margin-top: 15px;">
                 <input type="text" class="chat-input" id="chatInput" placeholder="Ask me anything...">
@@ -1007,21 +1010,21 @@
             </div>
             <div class="slider-container">
                 <div class="slider-label">
-                    <span>Hangout (50%)</span>
+                    <span>Hangout (<span id="hangoutPercentLabel">50%</span>)</span>
                     <span id="hangoutSplit">60 SAR</span>
                 </div>
                 <input type="range" class="slider" id="hangoutSlider" min="0" max="120" value="60" oninput="updateAllowanceSplit()">
             </div>
             <div class="slider-container">
                 <div class="slider-label">
-                    <span>Savings (37.5%)</span>
+                    <span>Savings (<span id="savingsPercentLabel">37.5%</span>)</span>
                     <span id="savingsSplit">45 SAR</span>
                 </div>
                 <input type="range" class="slider" id="savingsSlider" min="0" max="120" value="45" oninput="updateAllowanceSplit()">
             </div>
-            <div class="slider-container">
+            <div class="slider-container" id="playstationSliderContainer">
                 <div class="slider-label">
-                    <span>PlayStation / Mobily (12.5%)</span>
+                    <span>PlayStation / Mobily (<span id="playstationPercentLabel">12.5%</span>)</span>
                     <span id="playstationSplit">15 SAR</span>
                 </div>
                 <input type="range" class="slider" id="playstationSlider" min="0" max="120" value="15" oninput="updateAllowanceSplit()">
@@ -1295,6 +1298,101 @@
         </div>
     </div>
 
+    <!-- Account Setup Modal -->
+    <div class="modal" id="setupModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Setup Your Account</div>
+                <button class="close-btn" onclick="closeModal('setupModal')">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px; color: rgba(255,255,255,0.7);">Customize your money manager settings:</p>
+            
+            <div class="form-group">
+                <label class="form-label">Hangout Limit (SAR)</label>
+                <input type="number" class="form-input" id="setupHangoutLimit" placeholder="140" value="140">
+                <small style="color: rgba(255,255,255,0.5);">Maximum amount before excess moves to Savings</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Enable PlayStation/Mobily Bucket</label>
+                <select class="form-select" id="setupEnablePlaystation">
+                    <option value="true">Yes, I need this bucket</option>
+                    <option value="false">No, I don't use this</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Default Allowance Split</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Hangout %</label>
+                        <input type="number" class="form-input" id="setupHangoutPercent" value="50" min="0" max="100">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Savings %</label>
+                        <input type="number" class="form-input" id="setupSavingsPercent" value="37.5" min="0" max="100">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">PlayStation %</label>
+                        <input type="number" class="form-input" id="setupPlaystationPercent" value="12.5" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('setupModal')">Skip for Now</button>
+                <button class="modal-btn confirm" onclick="completeSetup()">Save & Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="close-btn" onclick="closeModal('settingsModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Hangout Limit (SAR)</label>
+                <input type="number" class="form-input" id="settingsHangoutLimit" placeholder="140">
+                <small style="color: rgba(255,255,255,0.5);">Maximum amount before excess moves to Savings</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Enable PlayStation/Mobily Bucket</label>
+                <select class="form-select" id="settingsEnablePlaystation">
+                    <option value="true">Yes, I need this bucket</option>
+                    <option value="false">No, I don't use this</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Default Allowance Split</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Hangout %</label>
+                        <input type="number" class="form-input" id="settingsHangoutPercent" min="0" max="100">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Savings %</label>
+                        <input type="number" class="form-input" id="settingsSavingsPercent" min="0" max="100">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">PlayStation %</label>
+                        <input type="number" class="form-input" id="settingsPlaystationPercent" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('settingsModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
     <div class="notification" id="notification"></div>
 
     <script type="module">
@@ -1317,6 +1415,15 @@
 
         // Data structure
         let currentUser = null;
+        let userPreferences = {
+            hangoutLimit: 140,
+            enablePlaystation: true,
+            hangoutPercent: 50,
+            savingsPercent: 37.5,
+            playstationPercent: 12.5,
+            weeklyHangoutBudget: 4, // Number of hangout days per week
+            hangoutBudgetPerDay: 15 // Target spending per hangout
+        };
         let balances = {
             hangout: 0,
             savings: 0,
@@ -1351,6 +1458,19 @@
             if (!currentUser) return;
 
             const username = currentUser.username;
+            
+            // Load user preferences
+            const prefsRef = ref(database, `users/${username}/preferences`);
+            get(prefsRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    userPreferences = snapshot.val();
+                    updateUIForPreferences();
+                } else {
+                    // Use default preferences
+                    updateUIForPreferences();
+                }
+            });
+
             const balancesRef = ref(database, `users/${username}/balances`);
             onValue(balancesRef, (snapshot) => {
                 if (snapshot.exists()) {
@@ -1400,10 +1520,10 @@
 
             // Check Hangout limit
             const hangoutLimit = document.getElementById('hangoutLimit');
-            if (balances.hangout > 140) {
-                hangoutLimit.innerHTML = `<span class="limit-warning">⚠️ Over limit! ${balances.hangout - 140} SAR should move to Savings</span>`;
+            if (balances.hangout > userPreferences.hangoutLimit) {
+                hangoutLimit.innerHTML = `<span class="limit-warning">⚠️ Over limit! ${balances.hangout - userPreferences.hangoutLimit} SAR should move to Savings</span>`;
             } else {
-                hangoutLimit.textContent = `Limit: 140 SAR (${140 - balances.hangout} SAR remaining)`;
+                hangoutLimit.textContent = `Limit: ${userPreferences.hangoutLimit} SAR (${userPreferences.hangoutLimit - balances.hangout} SAR remaining)`;
             }
 
             // Update edit modal with current values
@@ -1587,9 +1707,9 @@
         // Check and enforce Hangout limit
         function checkHangoutLimit() {
             if (!currentUser) return;
-            if (balances.hangout > 140) {
-                const excess = balances.hangout - 140;
-                balances.hangout = 140;
+            if (balances.hangout > userPreferences.hangoutLimit) {
+                const excess = balances.hangout - userPreferences.hangoutLimit;
+                balances.hangout = userPreferences.hangoutLimit;
                 balances.savings += excess;
                 set(ref(database, `users/${currentUser.username}/balances`), balances);
                 addToHistory('Auto Transfer', excess, 'hangout', `Moved ${excess} SAR from Hangout to Savings (limit exceeded)`);
@@ -1679,6 +1799,12 @@
                         document.getElementById('authSection').classList.remove('active');
                         document.getElementById('appContent').classList.add('active');
                         closeModal('loginModal');
+                        
+                        // Special handling for Asser
+                        if (username.toLowerCase() === 'asser') {
+                            applyAsserSettings();
+                        }
+                        
                         loadUserData();
                         showNotification('Login successful!');
                         document.getElementById('loginUsername').value = '';
@@ -1733,11 +1859,27 @@
                         createdAt: new Date().toISOString()
                     }).then(() => {
                         closeModal('signupModal');
-                        showNotification('Account created successfully! Please login.');
+                        showNotification('Account created successfully!');
                         document.getElementById('signupUsername').value = '';
                         document.getElementById('signupPassword').value = '';
                         document.getElementById('signupConfirmPassword').value = '';
-                        openLoginModal();
+                        
+                        // Auto-login and show setup
+                        currentUser = { username: username };
+                        localStorage.setItem('moneyManagerUsername', username);
+                        document.getElementById('userEmail').textContent = username;
+                        document.getElementById('authSection').classList.remove('active');
+                        document.getElementById('appContent').classList.add('active');
+                        
+                        // Special setup for Asser
+                        if (username.toLowerCase() === 'asser') {
+                            applyAsserSettings();
+                            loadUserData();
+                            showNotification('Welcome Asser! Your account is configured for smart weekly budgeting.');
+                        } else {
+                            // Show setup modal for other users
+                            openSetupModal();
+                        }
                     }).catch((error) => {
                         showNotification('Signup failed: ' + error.message, true);
                     });
@@ -1751,10 +1893,173 @@
         window.logout = function() {
             localStorage.removeItem('moneyManagerUsername');
             currentUser = null;
+            userPreferences = {
+                hangoutLimit: 140,
+                enablePlaystation: true,
+                hangoutPercent: 50,
+                savingsPercent: 37.5,
+                playstationPercent: 12.5
+            };
             document.getElementById('authSection').classList.add('active');
             document.getElementById('appContent').classList.remove('active');
             showNotification('Logged out successfully');
         };
+
+        // Setup modal functions
+        window.openSetupModal = function() {
+            document.getElementById('setupModal').classList.add('active');
+        };
+
+        window.completeSetup = function() {
+            const hangoutLimit = parseInt(document.getElementById('setupHangoutLimit').value) || 140;
+            const enablePlaystation = document.getElementById('setupEnablePlaystation').value === 'true';
+            const hangoutPercent = parseFloat(document.getElementById('setupHangoutPercent').value) || 50;
+            const savingsPercent = parseFloat(document.getElementById('setupSavingsPercent').value) || 37.5;
+            const playstationPercent = parseFloat(document.getElementById('setupPlaystationPercent').value) || 12.5;
+
+            // Validate percentages
+            if (Math.abs(hangoutPercent + savingsPercent + playstationPercent - 100) > 0.1) {
+                showNotification('Percentages must add up to 100%', true);
+                return;
+            }
+
+            userPreferences = {
+                hangoutLimit,
+                enablePlaystation,
+                hangoutPercent,
+                savingsPercent,
+                playstationPercent
+            };
+
+            // Save preferences to database
+            const prefsRef = ref(database, `users/${currentUser.username}/preferences`);
+            set(prefsRef, userPreferences).then(() => {
+                closeModal('setupModal');
+                showNotification('Settings saved! Setting up your account...');
+                loadUserData();
+                updateUIForPreferences();
+            }).catch((error) => {
+                showNotification('Failed to save settings: ' + error.message, true);
+            });
+        };
+
+        // Settings modal functions
+        window.openSettingsModal = function() {
+            // Load current preferences
+            document.getElementById('settingsHangoutLimit').value = userPreferences.hangoutLimit;
+            document.getElementById('settingsEnablePlaystation').value = userPreferences.enablePlaystation.toString();
+            document.getElementById('settingsHangoutPercent').value = userPreferences.hangoutPercent;
+            document.getElementById('settingsSavingsPercent').value = userPreferences.savingsPercent;
+            document.getElementById('settingsPlaystationPercent').value = userPreferences.playstationPercent;
+            
+            document.getElementById('settingsModal').classList.add('active');
+        };
+
+        // Apply Asser's custom settings
+        function applyAsserSettings() {
+            userPreferences = {
+                hangoutLimit: 60,
+                enablePlaystation: false,
+                hangoutPercent: 35,
+                savingsPercent: 25,
+                playstationPercent: 40,
+                weeklyHangoutBudget: 4,
+                hangoutBudgetPerDay: 15
+            };
+            
+            // Save Asser's preferences
+            const prefsRef = ref(database, `users/Asser/preferences`);
+            set(prefsRef, userPreferences);
+        }
+
+        window.saveSettings = function() {
+            const hangoutLimit = parseInt(document.getElementById('settingsHangoutLimit').value) || 140;
+            const enablePlaystation = document.getElementById('settingsEnablePlaystation').value === 'true';
+            const hangoutPercent = parseFloat(document.getElementById('settingsHangoutPercent').value) || 50;
+            const savingsPercent = parseFloat(document.getElementById('settingsSavingsPercent').value) || 37.5;
+            const playstationPercent = parseFloat(document.getElementById('settingsPlaystationPercent').value) || 12.5;
+
+            // Validate percentages
+            if (Math.abs(hangoutPercent + savingsPercent + playstationPercent - 100) > 0.1) {
+                showNotification('Percentages must add up to 100%', true);
+                return;
+            }
+
+            userPreferences = {
+                hangoutLimit,
+                enablePlaystation,
+                hangoutPercent,
+                savingsPercent,
+                playstationPercent
+            };
+
+            // Save preferences to database
+            const prefsRef = ref(database, `users/${currentUser.username}/preferences`);
+            set(prefsRef, userPreferences).then(() => {
+                closeModal('settingsModal');
+                showNotification('Settings updated!');
+                updateUIForPreferences();
+            }).catch((error) => {
+                showNotification('Failed to save settings: ' + error.message, true);
+            });
+        };
+
+        // Update UI based on user preferences
+        function updateUIForPreferences() {
+            // Show/hide PlayStation card based on preference
+            const psCard = document.querySelector('.balance-card.playstation');
+            if (psCard) {
+                psCard.style.display = userPreferences.enablePlaystation ? 'block' : 'none';
+            }
+
+            // Show/hide PlayStation slider based on preference
+            const psSliderContainer = document.getElementById('playstationSliderContainer');
+            if (psSliderContainer) {
+                psSliderContainer.style.display = userPreferences.enablePlaystation ? 'block' : 'none';
+            }
+
+            // Update percentage labels
+            document.getElementById('hangoutPercentLabel').textContent = `${userPreferences.hangoutPercent}%`;
+            document.getElementById('savingsPercentLabel').textContent = `${userPreferences.savingsPercent}%`;
+            document.getElementById('playstationPercentLabel').textContent = `${userPreferences.playstationPercent}%`;
+
+            // Update limit display
+            const limitElement = document.getElementById('hangoutLimit');
+            if (limitElement) {
+                limitElement.textContent = `Limit: ${userPreferences.hangoutLimit} SAR`;
+            }
+
+            // Update PlayStation options in dropdowns
+            const psOptions = document.querySelectorAll('option[value="playstation"]');
+            psOptions.forEach(option => {
+                option.style.display = userPreferences.enablePlaystation ? 'block' : 'none';
+            });
+
+            // Update quick questions based on user
+            updateQuickQuestions();
+        }
+
+        // Update quick questions based on user
+        function updateQuickQuestions() {
+            const quickQuestionsDiv = document.getElementById('quickQuestions');
+            if (currentUser && currentUser.username.toLowerCase() === 'asser') {
+                quickQuestionsDiv.innerHTML = `
+                    <div class="quick-question" onclick="askAI('Can I buy this?')">Can I buy this?</div>
+                    <div class="quick-question" onclick="askAI('How much do I have for this week?')">How much for this week?</div>
+                    <div class="quick-question" onclick="askAI('Will I run out of money?')">Will I run out?</div>
+                    <div class="quick-question" onclick="askAI('What\'s my weekly budget?')">Weekly budget?</div>
+                    <div class="quick-question" onclick="askAI('Am I spending too much?')">Am I spending too much?</div>
+                `;
+            } else {
+                quickQuestionsDiv.innerHTML = `
+                    <div class="quick-question" onclick="askAI('Is this worth it?')">Is this worth it?</div>
+                    <div class="quick-question" onclick="askAI('Can I buy this?')">Can I buy this?</div>
+                    <div class="quick-question" onclick="askAI('Should I spend from savings?')">Should I spend from savings?</div>
+                    <div class="quick-question" onclick="askAI('Can I go trampoline and Herfy?')">Can I go trampoline and Herfy?</div>
+                    <div class="quick-question" onclick="askAI('How long until I can afford FC 27?')">How long until I can afford FC 27?</div>
+                `;
+            }
+        }
 
         window.closeModal = function(modalId) {
             document.getElementById(modalId).classList.remove('active');
@@ -1865,10 +2170,12 @@
         window.autoCalculateSplit = function() {
             const total = parseInt(document.getElementById('allowanceAmount').value) || 120;
             
-            // Calculate splits based on percentages (50% Hangout, 37.5% Savings, 12.5% PlayStation)
-            const hangout = Math.round(total * 0.5);
-            const savings = Math.round(total * 0.375);
-            const playstation = total - hangout - savings; // Ensure exact total
+            // Calculate splits based on user preferences
+            const hangout = Math.round(total * (userPreferences.hangoutPercent / 100));
+            const savings = Math.round(total * (userPreferences.savingsPercent / 100));
+            const playstation = userPreferences.enablePlaystation ? 
+                Math.round(total * (userPreferences.playstationPercent / 100)) : 
+                total - hangout - savings;
             
             // Update sliders
             document.getElementById('hangoutSlider').value = hangout;
@@ -2004,6 +2311,24 @@
                 return;
             }
 
+            // Smart warning for Asser's hangout purchases
+            if (currentUser.username.toLowerCase() === 'asser' && category === 'hangout') {
+                const weeklyBudget = userPreferences.weeklyHangoutBudget * userPreferences.hangoutBudgetPerDay;
+                const remainingThisWeek = weeklyBudget - getWeeklySpending();
+                
+                if (cost > remainingThisWeek) {
+                    const confirmation = confirm(`⚠️ Smart Budget Warning: This costs ${cost} SAR but you only have ${remainingThisWeek} SAR left in your weekly budget. This might leave you without money for your remaining hangouts this week. Continue anyway?`);
+                    if (!confirmation) {
+                        return;
+                    }
+                } else if (cost > userPreferences.hangoutBudgetPerDay * 1.5) {
+                    const confirmation = confirm(`💡 Budget Tip: This costs ${cost} SAR which is higher than your typical ${userPreferences.hangoutBudgetPerDay} SAR per hangout. Consider if this is worth it. Continue?`);
+                    if (!confirmation) {
+                        return;
+                    }
+                }
+            }
+
             balances[category] -= cost;
             set(ref(database, `users/${currentUser.username}/balances`), balances);
             addToHistory('Purchase', -cost, category, name);
@@ -2102,7 +2427,12 @@
             const q = question.toLowerCase();
             const total = balances.hangout + balances.savings + balances.playstation;
             
-            // Rule-based AI responses
+            // Special smart advisor for Asser
+            if (currentUser && currentUser.username.toLowerCase() === 'asser') {
+                return getAsserAIResponse(q, total);
+            }
+            
+            // Rule-based AI responses for other users
             if (q.includes('worth it') || q.includes('should i buy')) {
                 if (balances.hangout > 50) {
                     return `You have ${balances.hangout} SAR in Hangout. As long as it's not more than 30-40 SAR, you should be fine. Remember to save some for later!`;
@@ -2152,7 +2482,74 @@
             }
             
             // Default response
-            return `Based on your current balances:\n• Hangout: ${balances.hangout} SAR\n• Savings: ${balances.savings} SAR\n• PlayStation: ${balances.playstation} SAR\n\nI'd recommend keeping your Hangout under 140 SAR and focusing on building your Savings for bigger goals. Is there something specific you're planning to buy?`;
+            return `Based on your current balances:\n• Hangout: ${balances.hangout} SAR\n• Savings: ${balances.savings} SAR\n• PlayStation: ${balances.playstation} SAR\n\nI'd recommend keeping your Hangout under ${userPreferences.hangoutLimit} SAR and focusing on building your Savings for bigger goals. Is there something specific you're planning to buy?`;
+        }
+
+        // Special AI advisor for Asser with weekly budgeting logic
+        function getAsserAIResponse(question, total) {
+            const weeklyBudget = userPreferences.weeklyHangoutBudget * userPreferences.hangoutBudgetPerDay; // 4 * 15 = 60 SAR per week
+            const remainingThisWeek = weeklyBudget - getWeeklySpending();
+            const hangoutRemaining = userPreferences.hangoutLimit - balances.hangout;
+            
+            if (question.includes('can i buy') || question.includes('should i buy') || question.includes('worth it')) {
+                // Try to extract cost from question
+                const costMatch = question.match(/(\d+)/);
+                const estimatedCost = costMatch ? parseInt(costMatch[0]) : 15; // Default to 15 SAR if no number found
+                
+                if (estimatedCost <= remainingThisWeek) {
+                    return `Yes! This costs ${estimatedCost} SAR and you have ${remainingThisWeek} SAR left in your weekly hangout budget. You'll still have money for your other ${userPreferences.weeklyHangoutBudget - 1} hangout days this week! 💪`;
+                } else if (estimatedCost <= balances.hangout) {
+                    return `You have enough money (${balances.hangout} SAR), but this costs ${estimatedCost} SAR which is more than your weekly budget (${remainingThisWeek} SAR remaining). I'd suggest waiting until next allowance or transferring from Savings if it's really important.`;
+                } else {
+                    return `This costs ${estimatedCost} SAR but you only have ${balances.hangout} SAR in Hangout. I'd recommend saving up or transferring from Savings. Your weekly budget allows ${weeklyBudget} SAR for hangouts.`;
+                }
+            }
+            
+            if (question.includes('week') || question.includes('weekly')) {
+                return `Your weekly hangout budget is ${weeklyBudget} SAR for ${userPreferences.weeklyHangoutBudget} hangout days (${userPreferences.hangoutBudgetPerDay} SAR per day). You have ${balances.hangout} SAR currently. Try to spend about ${userPreferences.hangoutBudgetPerDay} SAR each time to make it through the week!`;
+            }
+            
+            if (question.includes('how much') || question.includes('balance')) {
+                return `Hey Asser! Here's your weekly budget breakdown:\n• Hangout: ${balances.hangout} SAR (Limit: ${userPreferences.hangoutLimit} SAR)\n• Savings: ${balances.savings} SAR\n• Weekly budget: ${weeklyBudget} SAR for ${userPreferences.weeklyHangoutBudget} hangout days\n• Remaining this week: ${remainingThisWeek} SAR`;
+            }
+            
+            if (question.includes('save') || question.includes('saving')) {
+                const savingsRate = Math.round(userPreferences.savingsPercent / 100 * 120); // Assuming 120 SAR allowance
+                return `You're saving ${balances.savings} SAR! With your current setup (${userPreferences.savingsPercent}% savings), you add about ${savingsRate} SAR to savings each allowance. Keep it up - you're building great habits! 💰`;
+            }
+            
+            if (question.includes('broke') || question.includes('run out')) {
+                if (balances.hangout < userPreferences.hangoutBudgetPerDay) {
+                    return `⚠️ Warning: You only have ${balances.hangout} SAR left! That's less than your daily budget of ${userPreferences.hangoutBudgetPerDay} SAR. I'd recommend slowing down on hangouts this week or transferring from Savings.`;
+                } else {
+                    return `You're doing okay! You have ${balances.hangout} SAR which should cover your remaining hangouts this week. Just stick to about ${userPreferences.hangoutBudgetPerDay} SAR per hangout and you'll be fine!`;
+                }
+            }
+            
+            if (question.includes('next allowance') || question.includes('until next')) {
+                return `Your current setup (${userPreferences.hangoutPercent}% Hangout, ${userPreferences.savingsPercent}% Savings) means you'll get about ${Math.round(120 * userPreferences.hangoutPercent / 100)} SAR for hangouts next allowance. Combined with your current ${balances.hangout} SAR, you'll have ${balances.hangout + Math.round(120 * userPreferences.hangoutPercent / 100)} SAR for next week!`;
+            }
+            
+            // Default Asser response
+            return `Hey Asser! 👋 Your weekly hangout budget is ${weeklyBudget} SAR (${userPreferences.hangoutBudgetPerDay} SAR per hangout, ${userPreferences.weeklyHangoutBudget} times per week). You have ${balances.hangout} SAR currently in Hangout. Try to spend around ${userPreferences.hangoutBudgetPerDay} SAR each time to make it through until your next allowance. Your Savings is growing too - ${balances.savings} SAR! Keep up the great habits! 💪`;
+        }
+
+        // Calculate how much has been spent on hangouts this week
+        function getWeeklySpending() {
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            
+            let weeklySpending = 0;
+            history.forEach(item => {
+                if (item.type === 'Purchase' && item.category === 'hangout') {
+                    const itemDate = new Date(item.date);
+                    if (itemDate > oneWeekAgo) {
+                        weeklySpending += Math.abs(item.amount);
+                    }
+                }
+            });
+            
+            return weeklySpending;
         }
 
         // Notification
