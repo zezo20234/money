@@ -81,6 +81,25 @@
             text-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
         }
 
+        .allowance-countdown {
+            background: rgba(102, 126, 234, 0.15);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .allowance-countdown #daysRemaining {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 16px;
+        }
+
         .total-label {
             font-size: 14px;
             color: rgba(255, 255, 255, 0.7);
@@ -906,6 +925,9 @@
                 <h1>Money Manager</h1>
                 <div class="total-label">Total Balance</div>
                 <div class="total-balance" id="totalBalance">0 SAR</div>
+                <div class="allowance-countdown" id="allowanceCountdown" style="display: none;">
+                    📅 Next allowance in <span id="daysRemaining">0</span> days
+                </div>
             </div>
 
         <div class="balance-cards">
@@ -1476,7 +1498,8 @@
             fixedSavingsAmount: 25,
             weeklyHangoutBudget: 4, // Number of hangout days per week
             hangoutBudgetPerDay: 15, // Target spending per hangout
-            minimumSavings: 0 // Minimum savings requirement (0 for most users, 50 for Asser)
+            minimumSavings: 0, // Minimum savings requirement (0 for most users, 50 for Asser)
+            allowanceSchedule: null // Allowance schedule (for Asser)
         };
         let balances = {
             hangout: 0,
@@ -1514,6 +1537,16 @@
 
             const username = currentUser.username;
             
+            // Clear previous user data before loading new user
+            balances = {
+                hangout: 0,
+                savings: 0,
+                playstation: 0
+            };
+            history = [];
+            historyKeys = [];
+            goals = [];
+            
             // Load user preferences
             const prefsRef = ref(database, `users/${username}/preferences`);
             get(prefsRef).then((snapshot) => {
@@ -1523,11 +1556,27 @@
                     if (userPreferences.minimumSavings === undefined) {
                         userPreferences.minimumSavings = 0;
                     }
+                    // Ensure allowanceSchedule is set for Asser
+                    if (username.toLowerCase() === 'asser' && !userPreferences.allowanceSchedule) {
+                        userPreferences.allowanceSchedule = {
+                            dayOfWeek: 5, // Friday
+                            frequency: 3, // Every 3 weeks
+                            lastAllowanceDate: null
+                        };
+                        set(prefsRef, userPreferences);
+                    }
                     updateUIForPreferences();
                 } else {
                     // Use default preferences
                     if (userPreferences.minimumSavings === undefined) {
                         userPreferences.minimumSavings = 0;
+                    }
+                    if (username.toLowerCase() === 'asser' && !userPreferences.allowanceSchedule) {
+                        userPreferences.allowanceSchedule = {
+                            dayOfWeek: 5, // Friday
+                            frequency: 3, // Every 3 weeks
+                            lastAllowanceDate: null
+                        };
                     }
                     updateUIForPreferences();
                 }
@@ -1599,6 +1648,23 @@
                 }
             } else {
                 savingsLimit.textContent = 'Flexible savings';
+            }
+
+            // Update allowance countdown for Asser
+            const countdownElement = document.getElementById('allowanceCountdown');
+            if (currentUser && currentUser.username.toLowerCase() === 'asser' && userPreferences.allowanceSchedule) {
+                const allowanceInfo = getDaysUntilNextAllowance();
+                if (allowanceInfo) {
+                    countdownElement.style.display = 'flex';
+                    document.getElementById('daysRemaining').textContent = allowanceInfo.daysRemaining;
+                    
+                    // Show reminder
+                    showAllowanceReminder();
+                } else {
+                    countdownElement.style.display = 'none';
+                }
+            } else {
+                countdownElement.style.display = 'none';
             }
 
             // Update edit modal with current values
@@ -2059,18 +2125,44 @@
                         document.getElementById('appContent').classList.add('active');
                         closeModal('loginModal');
                         
+                        // Clear previous user data
+                        balances = {
+                            hangout: 0,
+                            savings: 0,
+                            playstation: 0
+                        };
+                        history = [];
+                        historyKeys = [];
+                        goals = [];
+                        
                         // Special handling for Asser
                         if (username.toLowerCase() === 'asser') {
                             // Set Asser's default preferences immediately
                             userPreferences = {
-                                hangoutLimit: 60,
+                                hangoutLimit: 50, // Updated to 50 SAR as requested
                                 enablePlaystation: false,
                                 useFixedAmounts: true,
                                 fixedHangoutAmount: 35,
                                 fixedSavingsAmount: 25,
                                 weeklyHangoutBudget: 4,
                                 hangoutBudgetPerDay: 15,
-                                minimumSavings: 50
+                                minimumSavings: 50,
+                                allowanceSchedule: {
+                                    dayOfWeek: 5, // Friday (0=Sunday, 1=Monday, etc.)
+                                    frequency: 3, // Every 3 weeks
+                                    lastAllowanceDate: null
+                                }
+                            };
+                        } else {
+                            // Reset to default for other users
+                            userPreferences = {
+                                hangoutLimit: 140,
+                                enablePlaystation: true,
+                                hangoutPercent: 50,
+                                savingsPercent: 37.5,
+                                playstationPercent: 12.5,
+                                minimumSavings: 0,
+                                allowanceSchedule: null
                             };
                         }
                         
@@ -2140,18 +2232,33 @@
                         document.getElementById('authSection').classList.remove('active');
                         document.getElementById('appContent').classList.add('active');
                         
+                        // Clear previous user data
+                        balances = {
+                            hangout: 0,
+                            savings: 0,
+                            playstation: 0
+                        };
+                        history = [];
+                        historyKeys = [];
+                        goals = [];
+                        
                         // Special setup for Asser
                         if (username.toLowerCase() === 'asser') {
                             // Set Asser's default preferences immediately
                             userPreferences = {
-                                hangoutLimit: 60,
+                                hangoutLimit: 50, // Updated to 50 SAR as requested
                                 enablePlaystation: false,
                                 useFixedAmounts: true,
                                 fixedHangoutAmount: 35,
                                 fixedSavingsAmount: 25,
                                 weeklyHangoutBudget: 4,
                                 hangoutBudgetPerDay: 15,
-                                minimumSavings: 50
+                                minimumSavings: 50,
+                                allowanceSchedule: {
+                                    dayOfWeek: 5, // Friday (0=Sunday, 1=Monday, etc.)
+                                    frequency: 3, // Every 3 weeks
+                                    lastAllowanceDate: null
+                                }
                             };
                             // Save Asser's preferences to database
                             const prefsRef = ref(database, `users/Asser/preferences`);
@@ -2159,6 +2266,16 @@
                             loadUserData();
                             showNotification('Welcome Asser! Your account is configured for smart weekly budgeting.');
                         } else {
+                            // Reset to default for other users
+                            userPreferences = {
+                                hangoutLimit: 140,
+                                enablePlaystation: true,
+                                hangoutPercent: 50,
+                                savingsPercent: 37.5,
+                                playstationPercent: 12.5,
+                                minimumSavings: 0,
+                                allowanceSchedule: null
+                            };
                             // Show setup modal for other users
                             openSetupModal();
                         }
@@ -2181,8 +2298,25 @@
                 hangoutPercent: 50,
                 savingsPercent: 37.5,
                 playstationPercent: 12.5,
-                minimumSavings: 0
+                minimumSavings: 0,
+                allowanceSchedule: null
             };
+            balances = {
+                hangout: 0,
+                savings: 0,
+                playstation: 0
+            };
+            history = [];
+            historyKeys = [];
+            goals = [];
+            
+            // Clear UI
+            document.getElementById('totalBalance').textContent = '0 SAR';
+            document.getElementById('hangoutBalance').textContent = '0 SAR';
+            document.getElementById('savingsBalance').textContent = '0 SAR';
+            document.getElementById('playstationBalance').textContent = '0 SAR';
+            document.getElementById('allowanceCountdown').style.display = 'none';
+            
             document.getElementById('authSection').classList.add('active');
             document.getElementById('appContent').classList.remove('active');
             showNotification('Logged out successfully');
@@ -2377,7 +2511,7 @@
                 quickQuestionsDiv.innerHTML = `
                     <div class="quick-question" onclick="askAI('Can I buy this?')">Can I buy this?</div>
                     <div class="quick-question" onclick="askAI('How much for this month?')">How much for this month?</div>
-                    <div class="quick-question" onclick="askAI('Will I run out of money?')">Will I run out?</div>
+                    <div class="quick-question" onclick="askAI('When is my next allowance?')">Next allowance?</div>
                     <div class="quick-question" onclick="askAI('What\'s my daily budget?')">Daily budget?</div>
                     <div class="quick-question" onclick="askAI('Am I spending too fast?')">Am I spending too fast?</div>
                 `;
@@ -2589,6 +2723,14 @@
 
             set(ref(database, `users/${currentUser.username}/balances`), balances);
             addToHistory('Allowance', total, null, `Split: ${hangout}/${savings}${userPreferences.enablePlaystation ? '/' + playstation : ''}`);
+            
+            // Update last allowance date for Asser
+            if (currentUser.username.toLowerCase() === 'asser' && userPreferences.allowanceSchedule) {
+                userPreferences.allowanceSchedule.lastAllowanceDate = new Date().toISOString();
+                const prefsRef = ref(database, `users/Asser/preferences`);
+                set(prefsRef, userPreferences);
+            }
+            
             checkHangoutLimit();
             closeModal('allowanceModal');
             showNotification('Allowance added successfully!');
@@ -2935,6 +3077,17 @@
                 return `You're saving ${balances.savings} SAR! With your current setup (${savingsRate} SAR fixed savings), you add ${savingsRate} SAR to savings each allowance. You're also spending at ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day which is ${monthlyAnalysis.dailyAverage <= monthlyAnalysis.sustainableDailyRate ? '✅ on track' : '⚠️ too fast'} for your monthly budget.${minimumInfo} Keep it up! 💰`;
             }
             
+            if (question.includes('allowance') || question.includes('next allowance') || question.includes('when')) {
+                const allowanceInfo = getDaysUntilNextAllowance();
+                if (allowanceInfo) {
+                    const options = { weekday: 'long', month: 'long', day: 'numeric' };
+                    const nextDate = allowanceInfo.nextAllowanceDate.toLocaleDateString('en-US', options);
+                    return `📅 Your next allowance is in ${allowanceInfo.daysRemaining} days on ${nextDate}. Make your current money last until then!`;
+                } else {
+                    return `Your allowance schedule is set for every 3 weeks on Friday. I'll remind you when it's coming up!`;
+                }
+            }
+            
             if (question.includes('broke') || question.includes('run out') || question.includes('zero')) {
                 if (monthlyAnalysis.warningLevel === 'critical') {
                     return `⚠️ CRITICAL: You're spending way too fast! At your current rate of ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day, you'll run out ${Math.ceil(monthlyAnalysis.daysRemaining - (balances.hangout / monthlyAnalysis.dailyAverage))} days before month end. You MUST slow down to ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day!`;
@@ -2959,7 +3112,9 @@
             // Default Asser response with monthly focus
             const minimumSavings = userPreferences.minimumSavings || 0;
             const minimumInfo = minimumSavings > 0 ? ` You must keep at least ${minimumSavings} SAR in Savings.` : '';
-            return `Hey Asser! 👋 You have ${balances.hangout} SAR in Hangout for ${monthlyAnalysis.daysRemaining} days left this month. To make it through, try to spend about ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day. Your current spending rate is ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day (${monthlyAnalysis.dailyAverage <= monthlyAnalysis.sustainableDailyRate ? '✅ Good!' : '⚠️ Too fast!'}). Your Savings is at ${balances.savings} SAR${minimumInfo} Keep up the great habits! 💪`;
+            const allowanceInfo = getDaysUntilNextAllowance();
+            const allowanceInfoText = allowanceInfo ? ` Next allowance in ${allowanceInfo.daysRemaining} days.` : '';
+            return `Hey Asser! 👋 You have ${balances.hangout} SAR in Hangout for ${monthlyAnalysis.daysRemaining} days left this month. To make it through, try to spend about ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day. Your current spending rate is ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day (${monthlyAnalysis.dailyAverage <= monthlyAnalysis.sustainableDailyRate ? '✅ Good!' : '⚠️ Too fast!'}). Your Savings is at ${balances.savings} SAR${minimumInfo}${allowanceInfoText} Keep up the great habits! 💪`;
         }
 
         // Calculate how much has been spent on hangouts this week
@@ -3067,6 +3222,63 @@
             });
             
             return monthlySpending;
+        }
+
+        // Calculate days until next allowance for Asser
+        function getDaysUntilNextAllowance() {
+            if (!userPreferences.allowanceSchedule) {
+                return null;
+            }
+
+            const schedule = userPreferences.allowanceSchedule;
+            const now = new Date();
+            const targetDay = schedule.dayOfWeek; // 5 = Friday
+            const frequency = schedule.frequency; // 3 weeks
+            
+            // If no last allowance date, calculate from a reference date
+            let lastAllowanceDate = schedule.lastAllowanceDate ? 
+                new Date(schedule.lastAllowanceDate) : 
+                new Date(); // Use today as reference
+            
+            // Find the next occurrence of the target day
+            let nextAllowanceDate = new Date(lastAllowanceDate);
+            nextAllowanceDate.setDate(nextAllowanceDate.getDate() + (frequency * 7));
+            
+            // Adjust to the correct day of week
+            while (nextAllowanceDate.getDay() !== targetDay) {
+                nextAllowanceDate.setDate(nextAllowanceDate.getDate() + 1);
+            }
+            
+            // Calculate days remaining
+            const daysRemaining = Math.ceil((nextAllowanceDate - now) / (1000 * 60 * 60 * 24));
+            
+            return {
+                daysRemaining,
+                nextAllowanceDate,
+                lastAllowanceDate
+            };
+        }
+
+        // Show allowance reminder
+        function showAllowanceReminder() {
+            if (!userPreferences.allowanceSchedule || currentUser.username.toLowerCase() !== 'asser') {
+                return;
+            }
+
+            const allowanceInfo = getDaysUntilNextAllowance();
+            if (!allowanceInfo) return;
+
+            const { daysRemaining, nextAllowanceDate } = allowanceInfo;
+            const options = { weekday: 'long', month: 'long', day: 'numeric' };
+            const nextDate = nextAllowanceDate.toLocaleDateString('en-US', options);
+
+            // Show notification if within 3 days of allowance
+            if (daysRemaining <= 3 && daysRemaining >= 0) {
+                const message = daysRemaining === 0 ? 
+                    `🎉 Today is allowance day! ${nextDate}` :
+                    `⏰ Allowance in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}! ${nextDate}`;
+                showNotification(message);
+            }
         }
 
         // Notification
