@@ -7,9 +7,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1a1a2e">
     <title>Money Manager</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    <link rel="icon" type="image/png" href="./icon-192.png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -786,7 +786,7 @@
                     <div class="card-title">Hangout</div>
                     <div class="card-amount" id="hangoutBalance">0 SAR</div>
                 </div>
-                <div class="card-limit" id="hangoutLimit">Limit: 110 SAR</div>
+                <div class="card-limit" id="hangoutLimit">Limit: 140 SAR</div>
             </div>
 
             <div class="balance-card savings">
@@ -882,25 +882,25 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Total Amount (SAR)</label>
-                <input type="number" class="form-input" id="allowanceAmount" placeholder="120" value="120">
+                <input type="number" class="form-input" id="allowanceAmount" placeholder="120" value="120" oninput="autoCalculateSplit()">
             </div>
             <div class="slider-container">
                 <div class="slider-label">
-                    <span>Hangout</span>
+                    <span>Hangout (50%)</span>
                     <span id="hangoutSplit">60 SAR</span>
                 </div>
                 <input type="range" class="slider" id="hangoutSlider" min="0" max="120" value="60" oninput="updateAllowanceSplit()">
             </div>
             <div class="slider-container">
                 <div class="slider-label">
-                    <span>Savings</span>
+                    <span>Savings (37.5%)</span>
                     <span id="savingsSplit">45 SAR</span>
                 </div>
                 <input type="range" class="slider" id="savingsSlider" min="0" max="120" value="45" oninput="updateAllowanceSplit()">
             </div>
             <div class="slider-container">
                 <div class="slider-label">
-                    <span>PlayStation / Mobily</span>
+                    <span>PlayStation / Mobily (12.5%)</span>
                     <span id="playstationSplit">15 SAR</span>
                 </div>
                 <input type="range" class="slider" id="playstationSlider" min="0" max="120" value="15" oninput="updateAllowanceSplit()">
@@ -1197,10 +1197,10 @@
 
             // Check Hangout limit
             const hangoutLimit = document.getElementById('hangoutLimit');
-            if (balances.hangout > 110) {
-                hangoutLimit.innerHTML = `<span class="limit-warning">⚠️ Over limit! ${balances.hangout - 110} SAR should move to Savings</span>`;
+            if (balances.hangout > 140) {
+                hangoutLimit.innerHTML = `<span class="limit-warning">⚠️ Over limit! ${balances.hangout - 140} SAR should move to Savings</span>`;
             } else {
-                hangoutLimit.textContent = `Limit: 110 SAR (${110 - balances.hangout} SAR remaining)`;
+                hangoutLimit.textContent = `Limit: 140 SAR (${140 - balances.hangout} SAR remaining)`;
             }
 
             // Update edit modal with current values
@@ -1382,9 +1382,9 @@
 
         // Check and enforce Hangout limit
         function checkHangoutLimit() {
-            if (balances.hangout > 110) {
-                const excess = balances.hangout - 110;
-                balances.hangout = 110;
+            if (balances.hangout > 140) {
+                const excess = balances.hangout - 140;
+                balances.hangout = 140;
                 balances.savings += excess;
                 set(ref(database, 'balances'), balances);
                 addToHistory('Auto Transfer', excess, 'hangout', `Moved ${excess} SAR from Hangout to Savings (limit exceeded)`);
@@ -1395,6 +1395,7 @@
         // Modal functions
         window.openAllowanceModal = function() {
             document.getElementById('allowanceModal').classList.add('active');
+            autoCalculateSplit(); // Auto-calculate when modal opens
         };
 
         window.openAddMoneyModal = function() {
@@ -1522,6 +1523,29 @@
             showNotification('Transaction deleted');
         };
 
+        // Auto calculate allowance split based on total amount
+        window.autoCalculateSplit = function() {
+            const total = parseInt(document.getElementById('allowanceAmount').value) || 120;
+            
+            // Calculate splits based on percentages (50% Hangout, 37.5% Savings, 12.5% PlayStation)
+            const hangout = Math.round(total * 0.5);
+            const savings = Math.round(total * 0.375);
+            const playstation = total - hangout - savings; // Ensure exact total
+            
+            // Update sliders
+            document.getElementById('hangoutSlider').value = hangout;
+            document.getElementById('hangoutSlider').max = total;
+            document.getElementById('savingsSlider').value = savings;
+            document.getElementById('savingsSlider').max = total;
+            document.getElementById('playstationSlider').value = playstation;
+            document.getElementById('playstationSlider').max = total;
+            
+            // Update display
+            document.getElementById('hangoutSplit').textContent = `${hangout} SAR`;
+            document.getElementById('savingsSplit').textContent = `${savings} SAR`;
+            document.getElementById('playstationSplit').textContent = `${playstation} SAR`;
+        };
+
         // Update allowance split display
         window.updateAllowanceSplit = function() {
             const total = parseInt(document.getElementById('allowanceAmount').value) || 120;
@@ -1546,11 +1570,7 @@
                 return;
             }
 
-            if (hangout + savings + playstation !== total) {
-                showNotification('Split must equal total amount', true);
-                return;
-            }
-
+            // Use the actual slider values (user can adjust if they want different split)
             balances.hangout += hangout;
             balances.savings += savings;
             balances.playstation += playstation;
@@ -1764,7 +1784,7 @@
             }
             
             // Default response
-            return `Based on your current balances:\n• Hangout: ${balances.hangout} SAR\n• Savings: ${balances.savings} SAR\n• PlayStation: ${balances.playstation} SAR\n\nI'd recommend keeping your Hangout under 110 SAR and focusing on building your Savings for bigger goals. Is there something specific you're planning to buy?`;
+            return `Based on your current balances:\n• Hangout: ${balances.hangout} SAR\n• Savings: ${balances.savings} SAR\n• PlayStation: ${balances.playstation} SAR\n\nI'd recommend keeping your Hangout under 140 SAR and focusing on building your Savings for bigger goals. Is there something specific you're planning to buy?`;
         }
 
         // Notification
@@ -1790,7 +1810,7 @@
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
+                navigator.serviceWorker.register('./service-worker.js')
                     .then(registration => {
                         console.log('ServiceWorker registration successful');
                     })

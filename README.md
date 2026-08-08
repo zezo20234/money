@@ -4,7 +4,7 @@ A beautiful personal money manager app designed for mobile and desktop, with PWA
 
 ## Features
 
-- 💰 **Allowance Management**: Add allowance with custom splits (default: 60/45/15 SAR)
+- 💰 **Allowance Management**: Add allowance with auto-calculated splits (50% Hangout, 37.5% Savings, 12.5% PlayStation)
 - 🔄 **Flexible Transfers**: Move money between buckets anytime
 - 🛒 **Purchase Tracking**: Record purchases from any bucket
 - ✏️ **Manual Editing**: Fix balances when needed
@@ -18,11 +18,12 @@ A beautiful personal money manager app designed for mobile and desktop, with PWA
 
 ## Money Rules
 
-- **Hangout**: Maximum 110 SAR (excess automatically moves to Savings)
+- **Hangout**: Maximum 140 SAR (excess automatically moves to Savings)
 - **Savings**: Flexible, carries over indefinitely
 - **PlayStation/Mobily**: For gaming and mobile expenses
 - No monthly resets - money carries over forever
 - Custom allowance amounts supported
+- Auto-calculation: Allowance splits automatically (50% Hangout, 37.5% Savings, 12.5% PlayStation)
 
 ## Quick Start
 
@@ -53,9 +54,9 @@ MONEY/
 
 ## Usage Tips
 
-- **Add Allowance**: Use "I Got Allowance" to add money with the default 60/45/15 split
-- **Custom Splits**: Edit the sliders before confirming allowance
-- **Hangout Limit**: The app automatically moves excess above 110 SAR to Savings
+- **Add Allowance**: Use "I Got Allowance" to add money - splits auto-calculate (50% Hangout, 37.5% Savings, 12.5% PlayStation)
+- **Custom Splits**: Adjust the sliders if you want different percentages
+- **Hangout Limit**: The app automatically moves excess above 140 SAR to Savings
 - **AI Advisor**: Ask questions like "Can I afford FC 27?" for personalized advice
 - **Goals**: Set savings goals to track progress toward big purchases
 - **Edit Transactions**: Hover over any transaction in the activity feed to see edit/delete buttons
