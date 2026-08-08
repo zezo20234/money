@@ -8,11 +8,13 @@ A beautiful personal money manager app designed for mobile and desktop, with PWA
 - 🔄 **Flexible Transfers**: Move money between buckets anytime
 - 🛒 **Purchase Tracking**: Record purchases from any bucket
 - ✏️ **Manual Editing**: Fix balances when needed
+- 🗑️ **Transaction Management**: Edit or delete any transaction from history
 - 🎯 **Goals**: Set and track savings goals
 - 📊 **Charts**: Visual spending breakdown and allowance history
 - 🤖 **AI Advisor**: Smart money advice based on your balances
 - 📱 **PWA**: Install on home screen like a real app
 - ☁️ **Firebase**: Real-time sync across devices
+- 🎨 **Premium Design**: Beautiful liquid-glass UI with smooth animations
 
 ## Money Rules
 
@@ -56,6 +58,9 @@ MONEY/
 - **Hangout Limit**: The app automatically moves excess above 110 SAR to Savings
 - **AI Advisor**: Ask questions like "Can I afford FC 27?" for personalized advice
 - **Goals**: Set savings goals to track progress toward big purchases
+- **Edit Transactions**: Hover over any transaction in the activity feed to see edit/delete buttons
+- **Delete Transactions**: Remove mistakes by clicking the trash icon on any transaction
+- **Transaction History**: All changes are logged and can be modified if needed
 
 ## Mobile Installation (iOS)
 
@@ -73,8 +78,9 @@ MONEY/
 - **Framework**: Vanilla JavaScript (no dependencies except Firebase)
 - **Charts**: Chart.js via CDN
 - **Database**: Firebase Realtime Database
-- **Styling**: Custom CSS with liquid-glass effect
+- **Styling**: Premium liquid-glass design with backdrop-filter, blur effects, and smooth animations
 - **Responsive**: Mobile-first design, works on all screen sizes
+- **PWA**: Full Progressive Web App support with service worker caching
 
 ## Privacy
 
