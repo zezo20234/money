@@ -1,1054 +1,1804 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>Masareef — Allowance Manager</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Money Manager</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
 
-<!-- ===== PWA / Add to Home Screen ===== -->
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Masareef" />
-<meta name="theme-color" content="#0a0a12" />
-<!-- Inline SVG icon so the whole app stays in one file -->
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230a0a12'/%3E%3Ctext x='90' y='122' font-size='96' text-anchor='middle' fill='%23fff' font-family='system-ui'%3E%F0%9F%92%B0%3C/text%3E%3C/svg%3E" />
-<!-- Inline manifest (data URI) keeps the app installable while staying single-file -->
-<link rel="manifest" href='data:application/manifest+json,{"name":"Masareef","short_name":"Masareef","display":"standalone","background_color":"%2307070c","theme_color":"%2307070c","start_url":"."}' />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%B0%3C/text%3E%3C/svg%3E" />
+        body {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+            position: relative;
+        }
 
-<style>
-/* =========================================================
-   Design tokens
-   ========================================================= */
-:root{
-  --bg:#07070c;
-  --glass: rgba(255,255,255,.09);
-  --glass-strong: rgba(255,255,255,.16);
-  --stroke: rgba(255,255,255,.18);
-  --text:#f5f5f7;
-  --muted: rgba(245,245,247,.6);
-  --hangout:#ff9f0a;
-  --savings:#30d158;
-  --ps:#0a84ff;
-  --danger:#ff453a;
-  --radius:26px;
-  --safe-b: env(safe-area-inset-bottom, 0px);
-  --safe-t: env(safe-area-inset-top, 0px);
-}
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(46, 213, 115, 0.1) 0%, transparent 30%);
+            pointer-events: none;
+            z-index: 0;
+        }
 
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,system-ui,sans-serif;
-  color:var(--text);
-  background:var(--bg);
-  overflow-x:hidden;
-  -webkit-font-smoothing:antialiased;
-}
+        .app-container {
+            max-width: 430px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 100px;
+            position: relative;
+            z-index: 1;
+        }
 
-/* Animated color blobs behind the frosted glass */
-.aurora{position:fixed;inset:0;z-index:-2;overflow:hidden;background:var(--bg)}
-.aurora i{
-  position:absolute;display:block;border-radius:50%;
-  filter:blur(70px);opacity:.55;animation:float 18s ease-in-out infinite;
-}
-.aurora i:nth-child(1){width:60vw;height:60vw;background:#7b2ff7;top:-15vw;left:-10vw}
-.aurora i:nth-child(2){width:55vw;height:55vw;background:#0a84ff;top:25vh;right:-20vw;animation-delay:-6s}
-.aurora i:nth-child(3){width:50vw;height:50vw;background:#30d158;bottom:-15vh;left:-5vw;animation-delay:-11s}
-.aurora i:nth-child(4){width:45vw;height:45vw;background:#ff375f;bottom:5vh;right:-10vw;animation-delay:-3s}
-@keyframes float{
-  0%,100%{transform:translate3d(0,0,0) scale(1)}
-  33%{transform:translate3d(6vw,-6vh,0) scale(1.12)}
-  66%{transform:translate3d(-5vw,5vh,0) scale(.94)}
-}
+        .header {
+            text-align: center;
+            padding: 25px 0;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-radius: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
 
-/* =========================================================
-   Layout
-   ========================================================= */
-.app{max-width:520px;margin:0 auto;padding:calc(var(--safe-t) + 14px) 16px calc(112px + var(--safe-b));}
-header.top{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 16px}
-header.top h1{font-size:26px;font-weight:800;letter-spacing:-.5px;margin:0}
-header.top .sub{font-size:13px;color:var(--muted);margin-top:2px}
-.sync{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);
-  background:var(--glass);border:1px solid var(--stroke);padding:6px 10px;border-radius:999px;backdrop-filter:blur(20px)}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--savings);box-shadow:0 0 8px var(--savings)}
-.dot.off{background:var(--hangout);box-shadow:0 0 8px var(--hangout)}
-.dot.err{background:var(--danger);box-shadow:0 0 8px var(--danger)}
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
 
-/* Frosted glass card */
-.card{
-  position:relative;
-  background:var(--glass);
-  border:1px solid var(--stroke);
-  border-radius:var(--radius);
-  backdrop-filter:blur(30px) saturate(180%);
-  -webkit-backdrop-filter:blur(30px) saturate(180%);
-  box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.22);
-  padding:18px;
-  margin-bottom:14px;
-  animation:rise .5s cubic-bezier(.2,.8,.2,1) both;
-}
-@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+        .total-balance {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 10px 0;
+            text-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+        }
 
-/* Total balance hero */
-.hero{text-align:center;padding:26px 18px}
-.hero .label{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
-.hero .total{font-size:52px;font-weight:800;letter-spacing:-2px;margin:6px 0 2px;
-  font-variant-numeric:tabular-nums;transition:transform .3s}
-.hero .total small{font-size:20px;font-weight:600;color:var(--muted);margin-left:4px}
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
-  background:var(--glass-strong);border:1px solid var(--stroke);padding:7px 14px;border-radius:999px;margin-top:8px}
+        .total-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
 
-/* Balance tiles */
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.tile{
-  background:var(--glass);border:1px solid var(--stroke);border-radius:20px;padding:14px 10px;
-  backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
-  text-align:center;overflow:hidden;position:relative;
-  animation:rise .5s cubic-bezier(.2,.8,.2,1) both;
-}
-.tile:nth-child(2){animation-delay:.06s}
-.tile:nth-child(3){animation-delay:.12s}
-.tile .emo{font-size:20px}
-.tile .name{font-size:11px;color:var(--muted);margin-top:3px}
-.tile .val{font-size:19px;font-weight:750;margin-top:4px;font-variant-numeric:tabular-nums}
-.tile .bar{height:4px;border-radius:4px;background:rgba(255,255,255,.14);margin-top:9px;overflow:hidden}
-.tile .bar span{display:block;height:100%;border-radius:4px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
-.tile.h .val{color:var(--hangout)} .tile.h .bar span{background:var(--hangout)}
-.tile.s .val{color:var(--savings)} .tile.s .bar span{background:var(--savings)}
-.tile.p .val{color:var(--ps)}      .tile.p .bar span{background:var(--ps)}
+        .balance-cards {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
 
-/* Buttons */
-.btn{
-  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
-  font-family:inherit;font-size:16px;font-weight:700;color:var(--text);
-  background:var(--glass-strong);border:1px solid var(--stroke);border-radius:18px;
-  padding:15px 16px;cursor:pointer;
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  transition:transform .18s cubic-bezier(.2,.8,.2,1), background .2s, opacity .2s;
-}
-.btn:active{transform:scale(.96)}
-.btn.primary{background:linear-gradient(135deg,#0a84ff,#7b2ff7);border-color:rgba(255,255,255,.28);
-  box-shadow:0 10px 26px rgba(10,132,255,.35)}
-.btn.green{background:linear-gradient(135deg,#30d158,#0a84ff);box-shadow:0 10px 26px rgba(48,209,88,.3)}
-.btn.ghost{background:var(--glass)}
-.btn.sm{font-size:14px;padding:11px 14px;border-radius:14px}
-.btn.danger{background:rgba(255,69,58,.18);border-color:rgba(255,69,58,.4);color:#ff6a61}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .balance-card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-radius: 20px;
+            padding: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
 
-/* Section title */
-.sect{display:flex;align-items:center;justify-content:space-between;margin:20px 4px 10px}
-.sect h2{font-size:19px;font-weight:750;margin:0;letter-spacing:-.3px}
-.sect .link{font-size:13px;color:#7fb8ff;cursor:pointer;background:none;border:0;font-family:inherit}
+        .balance-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        }
 
-/* Inputs */
-label.f{display:block;font-size:12px;color:var(--muted);margin:12px 2px 6px}
-input,select,textarea{
-  width:100%;font-family:inherit;font-size:16px;color:var(--text);
-  background:rgba(255,255,255,.08);border:1px solid var(--stroke);border-radius:15px;
-  padding:14px;outline:none;transition:border-color .2s, background .2s;
-  -webkit-appearance:none;appearance:none;
-}
-input:focus,select:focus,textarea:focus{border-color:rgba(10,132,255,.8);background:rgba(255,255,255,.12)}
-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='white' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 16px center}
+        .balance-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 
+                0 12px 40px rgba(102, 126, 234, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
 
-/* Segmented category chips */
-.chips{display:flex;gap:8px}
-.chip{flex:1;text-align:center;font-size:13px;font-weight:650;padding:12px 6px;border-radius:14px;
-  background:rgba(255,255,255,.07);border:1px solid var(--stroke);cursor:pointer;transition:.2s}
-.chip[data-on="1"]{background:var(--glass-strong);border-color:rgba(255,255,255,.5);transform:scale(1.02)}
+        .balance-card.hangout {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+        }
 
-/* History list */
-.list{display:flex;flex-direction:column;gap:9px}
-.item{display:flex;align-items:center;gap:12px;background:var(--glass);border:1px solid var(--stroke);
-  border-radius:18px;padding:12px 14px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.item .ico{width:38px;height:38px;flex:0 0 38px;border-radius:12px;display:grid;place-items:center;
-  font-size:18px;background:rgba(255,255,255,.1)}
-.item .mid{flex:1;min-width:0}
-.item .t{font-size:15px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.item .d{font-size:11.5px;color:var(--muted);margin-top:2px}
-.item .amt{font-size:15px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
-.amt.pos{color:var(--savings)} .amt.neg{color:#ff6a61}
-.item .x{background:none;border:0;color:var(--muted);font-size:18px;cursor:pointer;padding:2px 4px}
+        .balance-card.savings {
+            background: linear-gradient(135deg, rgba(46, 213, 115, 0.15) 0%, rgba(0, 206, 201, 0.15) 100%);
+        }
 
-/* Goals */
-.goal{background:var(--glass);border:1px solid var(--stroke);border-radius:20px;padding:15px;
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.goal + .goal{margin-top:10px}
-.goal .gh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.goal .gn{font-size:16px;font-weight:700}
-.goal .gp{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
-.track{height:10px;border-radius:10px;background:rgba(255,255,255,.14);margin-top:10px;overflow:hidden}
-.track span{display:block;height:100%;border-radius:10px;
-  background:linear-gradient(90deg,#30d158,#0a84ff);transition:width .7s cubic-bezier(.2,.8,.2,1)}
-.goal .gf{display:flex;justify-content:space-between;align-items:center;margin-top:9px}
-.goal .gs{font-size:12px;color:var(--muted)}
-.goal.done{border-color:rgba(48,209,88,.55)}
+        .balance-card.playstation {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 159, 67, 0.15) 100%);
+        }
 
-/* Advisor chat */
-.chat{display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow-y:auto;padding-right:2px}
-.msg{max-width:88%;padding:12px 14px;border-radius:18px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;
-  animation:rise .35s cubic-bezier(.2,.8,.2,1) both}
-.msg.me{align-self:flex-end;background:linear-gradient(135deg,#0a84ff,#5e5ce6);border-bottom-right-radius:6px}
-.msg.ai{align-self:flex-start;background:rgba(255,255,255,.12);border:1px solid var(--stroke);border-bottom-left-radius:6px}
-.qbox{display:flex;gap:8px;margin-top:12px}
-.qbox input{border-radius:999px}
-.qbox button{flex:0 0 50px;height:50px;border-radius:50%;border:1px solid var(--stroke);
-  background:linear-gradient(135deg,#0a84ff,#7b2ff7);color:#fff;font-size:18px;cursor:pointer}
-.sugg{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
-.sugg button{font-family:inherit;font-size:12px;color:var(--text);background:rgba(255,255,255,.09);
-  border:1px solid var(--stroke);border-radius:999px;padding:8px 12px;cursor:pointer}
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
 
-/* Tab bar */
-nav.tabs{
-  position:fixed;left:0;right:0;bottom:0;z-index:40;
-  padding:8px 12px calc(8px + var(--safe-b));
-  background:rgba(20,20,28,.6);border-top:1px solid var(--stroke);
-  backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);
-}
-nav.tabs .inner{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
-nav.tabs button{background:none;border:0;color:var(--muted);font-family:inherit;font-size:10px;
-  display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;cursor:pointer;transition:.2s}
-nav.tabs button b{font-size:20px;line-height:1;font-weight:400}
-nav.tabs button[data-on="1"]{color:var(--text);transform:translateY(-2px)}
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
 
-/* Screens */
-.screen{display:none}
-.screen[data-on="1"]{display:block}
+        .card-amount {
+            font-size: 28px;
+            font-weight: 700;
+        }
 
-/* Sheet (modal) */
-.scrim{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);
-  opacity:0;pointer-events:none;transition:opacity .25s}
-.scrim[data-open="1"]{opacity:1;pointer-events:auto}
-.sheet{
-  position:fixed;left:0;right:0;bottom:0;z-index:51;
-  max-width:520px;margin:0 auto;
-  background:rgba(28,28,36,.82);border:1px solid var(--stroke);border-bottom:0;
-  border-radius:30px 30px 0 0;
-  backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);
-  padding:10px 18px calc(22px + var(--safe-b));
-  transform:translateY(110%);transition:transform .38s cubic-bezier(.2,.9,.2,1);
-  max-height:92vh;overflow-y:auto;
-}
-.sheet[data-open="1"]{transform:none}
-.grab{width:38px;height:5px;border-radius:5px;background:rgba(255,255,255,.3);margin:4px auto 12px}
-.sheet h3{margin:0 0 2px;font-size:21px;font-weight:780;letter-spacing:-.3px}
-.sheet p.hint{margin:4px 0 12px;font-size:13px;color:var(--muted);line-height:1.5}
+        .card-limit {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
 
-/* Month-type option cards inside sheet */
-.opt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;
-  background:var(--glass);border:1px solid var(--stroke);border-radius:20px;padding:15px;margin-bottom:10px;
-  color:var(--text);font-family:inherit;cursor:pointer;transition:transform .18s, background .2s}
-.opt:active{transform:scale(.97)}
-.opt .oe{font-size:26px}
-.opt .ot{font-size:16px;font-weight:730}
-.opt .od{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.5}
+        .limit-warning {
+            color: #ff6b6b;
+            font-weight: 600;
+        }
 
-.toast{position:fixed;left:50%;bottom:calc(96px + var(--safe-b));transform:translateX(-50%) translateY(16px);
-  z-index:80;background:rgba(30,30,38,.9);border:1px solid var(--stroke);color:var(--text);
-  padding:12px 18px;border-radius:999px;font-size:14px;font-weight:600;
-  backdrop-filter:blur(20px);opacity:0;pointer-events:none;transition:.3s;max-width:88vw;text-align:center}
-.toast[data-open="1"]{opacity:1;transform:translateX(-50%)}
-.empty{text-align:center;color:var(--muted);font-size:13.5px;padding:22px 10px;line-height:1.6}
-.mono{font-variant-numeric:tabular-nums}
-</style>
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 16px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .action-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .action-btn.success {
+            background: linear-gradient(135deg, rgba(46, 213, 115, 0.8) 0%, rgba(0, 206, 201, 0.8) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .action-btn.warning {
+            background: linear-gradient(135deg, rgba(255, 165, 2, 0.8) 0%, rgba(255, 127, 80, 0.8) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-radius: 20px;
+            padding: 22px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            margin: 0 -10px;
+            padding: 14px 10px;
+            border-radius: 10px;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-type {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .history-date {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 2px;
+        }
+
+        .history-amount {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .history-amount.positive {
+            color: #2ed573;
+        }
+
+        .history-amount.negative {
+            color: #ff6b6b;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .history-item:hover .history-actions {
+            opacity: 1;
+        }
+
+        .history-action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 6px 10px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .history-action-btn.edit {
+            color: #667eea;
+        }
+
+        .history-action-btn.delete {
+            color: #ff6b6b;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(15, 12, 41, 0.95);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border-radius: 28px;
+            padding: 32px;
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .close-btn:hover {
+            opacity: 1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: rgba(102, 126, 234, 0.6);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.25);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: rgba(102, 126, 234, 0.6);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.25);
+        }
+
+        .form-select option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .slider-container {
+            margin-bottom: 20px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .modal-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: none;
+        }
+
+        .modal-btn.cancel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-btn.cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .modal-btn.confirm {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .modal-btn.confirm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .goals-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .goal-card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 16px;
+            padding: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .goal-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .goal-name {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .goal-amount {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .goal-progress {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .goal-progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .goal-status {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+
+        .chart-container {
+            height: 250px;
+            margin-bottom: 20px;
+        }
+
+        .ai-chat {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-radius: 20px;
+            padding: 22px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .chat-messages {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .chat-message {
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .chat-message.user {
+            background: rgba(102, 126, 234, 0.3);
+            margin-left: 20px;
+        }
+
+        .chat-message.ai {
+            background: rgba(46, 213, 115, 0.2);
+            margin-right: 20px;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 25px;
+            color: white;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: rgba(102, 126, 234, 0.6);
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .chat-send {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            padding: 14px 24px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .chat-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .quick-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .quick-question {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quick-question:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 25px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(46, 213, 115, 0.9);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 16px 28px;
+            border-radius: 14px;
+            font-weight: 600;
+            z-index: 2000;
+            transform: translateX(400px);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 25px rgba(46, 213, 115, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: rgba(255, 107, 107, 0.9);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 15px;
+            }
+
+            .total-balance {
+                font-size: 36px;
+            }
+
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+    </style>
 </head>
 <body>
+    <div class="app-container">
+        <div class="header">
+            <h1>Money Manager</h1>
+            <div class="total-label">Total Balance</div>
+            <div class="total-balance" id="totalBalance">0 SAR</div>
+        </div>
 
-<!-- animated background -->
-<div class="aurora"><i></i><i></i><i></i><i></i></div>
+        <div class="balance-cards">
+            <div class="balance-card hangout">
+                <div class="card-header">
+                    <div class="card-title">Hangout</div>
+                    <div class="card-amount" id="hangoutBalance">0 SAR</div>
+                </div>
+                <div class="card-limit" id="hangoutLimit">Limit: 110 SAR</div>
+            </div>
 
-<div class="app">
-  <header class="top">
-    <div>
-      <h1>Masareef</h1>
-      <div class="sub" id="todayLbl">—</div>
+            <div class="balance-card savings">
+                <div class="card-header">
+                    <div class="card-title">Savings</div>
+                    <div class="card-amount" id="savingsBalance">0 SAR</div>
+                </div>
+                <div class="card-limit">Flexible savings</div>
+            </div>
+
+            <div class="balance-card playstation">
+                <div class="card-header">
+                    <div class="card-title">PlayStation / Mobily</div>
+                    <div class="card-amount" id="playstationBalance">0 SAR</div>
+                </div>
+                <div class="card-limit">Gaming & Mobile</div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn primary" onclick="openAllowanceModal()">
+                💰 I Got Allowance
+            </button>
+            <button class="action-btn success" onclick="openAddMoneyModal()">
+                ➕ Add Money
+            </button>
+            <button class="action-btn warning" onclick="openTransferModal()">
+                🔄 Transfer
+            </button>
+            <button class="action-btn" onclick="openPurchaseModal()">
+                🛒 Purchase
+            </button>
+            <button class="action-btn" onclick="openEditModal()">
+                ✏️ Edit Money
+            </button>
+            <button class="action-btn" onclick="openGoalsModal()">
+                🎯 Goals
+            </button>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('activity')">Activity</div>
+            <div class="tab" onclick="switchTab('charts')">Charts</div>
+            <div class="tab" onclick="switchTab('ai')">AI Advisor</div>
+        </div>
+
+        <div class="section" id="activitySection">
+            <div class="section-title">Recent Activity</div>
+            <div id="activityList">
+                <div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">
+                    No activity yet
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="chartsSection" style="display: none;">
+            <div class="section-title">Spending Overview</div>
+            <div class="chart-container">
+                <canvas id="spendingChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="allowanceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="ai-chat" id="aiSection" style="display: none;">
+            <div class="section-title">AI Money Advisor</div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message ai">
+                    Hi! I'm your money advisor. Ask me anything about your finances!
+                </div>
+            </div>
+            <div class="quick-questions">
+                <div class="quick-question" onclick="askAI('Is this worth it?')">Is this worth it?</div>
+                <div class="quick-question" onclick="askAI('Can I buy this?')">Can I buy this?</div>
+                <div class="quick-question" onclick="askAI('Should I spend from savings?')">Should I spend from savings?</div>
+                <div class="quick-question" onclick="askAI('Can I go trampoline and Herfy?')">Can I go trampoline and Herfy?</div>
+                <div class="quick-question" onclick="askAI('How long until I can afford FC 27?')">How long until I can afford FC 27?</div>
+            </div>
+            <div class="chat-input-container" style="margin-top: 15px;">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Ask me anything...">
+                <button class="chat-send" onclick="sendChatMessage()">Send</button>
+            </div>
+        </div>
     </div>
-    <div class="sync"><span class="dot off" id="syncDot"></span><span id="syncTxt">connecting…</span></div>
-  </header>
 
-  <!-- ================= HOME ================= -->
-  <section class="screen" data-screen="home" data-on="1">
-    <div class="card hero">
-      <div class="label">Total Money</div>
-      <div class="total" id="totalVal">0<small>SAR</small></div>
-      <div class="pill" id="monthPill">🗓️ —</div>
+    <!-- Allowance Modal -->
+    <div class="modal" id="allowanceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Add Allowance</div>
+                <button class="close-btn" onclick="closeModal('allowanceModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Total Amount (SAR)</label>
+                <input type="number" class="form-input" id="allowanceAmount" placeholder="120" value="120">
+            </div>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Hangout</span>
+                    <span id="hangoutSplit">60 SAR</span>
+                </div>
+                <input type="range" class="slider" id="hangoutSlider" min="0" max="120" value="60" oninput="updateAllowanceSplit()">
+            </div>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Savings</span>
+                    <span id="savingsSplit">45 SAR</span>
+                </div>
+                <input type="range" class="slider" id="savingsSlider" min="0" max="120" value="45" oninput="updateAllowanceSplit()">
+            </div>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>PlayStation / Mobily</span>
+                    <span id="playstationSplit">15 SAR</span>
+                </div>
+                <input type="range" class="slider" id="playstationSlider" min="0" max="120" value="15" oninput="updateAllowanceSplit()">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('allowanceModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="addAllowance()">Add Allowance</button>
+            </div>
+        </div>
     </div>
 
-    <div class="tiles">
-      <div class="tile h"><div class="emo">🍔</div><div class="name">Hangout</div>
-        <div class="val" id="hVal">0</div><div class="bar"><span id="hBar" style="width:0%"></span></div></div>
-      <div class="tile s"><div class="emo">🏦</div><div class="name">Savings</div>
-        <div class="val" id="sVal">0</div><div class="bar"><span id="sBar" style="width:0%"></span></div></div>
-      <div class="tile p"><div class="emo">🎮</div><div class="name">PS / Mobily</div>
-        <div class="val" id="pVal">0</div><div class="bar"><span id="pBar" style="width:0%"></span></div></div>
+    <!-- Add Money Modal -->
+    <div class="modal" id="addMoneyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Add Money</div>
+                <button class="close-btn" onclick="closeModal('addMoneyModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Select Bucket</label>
+                <select class="form-select" id="addMoneyBucket">
+                    <option value="hangout">Hangout</option>
+                    <option value="savings">Savings</option>
+                    <option value="playstation">PlayStation / Mobily</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Amount (SAR)</label>
+                <input type="number" class="form-input" id="addMoneyAmount" placeholder="50">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('addMoneyModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="addMoney()">Add Money</button>
+            </div>
+        </div>
     </div>
 
-    <button class="btn green" onclick="openAllowance()">💸 I Got Allowance (+120 SAR)</button>
-    <div class="row" style="margin-top:10px">
-      <button class="btn primary" onclick="openSheet('purchaseSheet')">🛍️ Add Purchase</button>
-      <button class="btn ghost" onclick="openPlanNext()">📅 Plan Next</button>
+    <!-- Transfer Modal -->
+    <div class="modal" id="transferModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Transfer Money</div>
+                <button class="close-btn" onclick="closeModal('transferModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">From</label>
+                <select class="form-select" id="transferFrom">
+                    <option value="hangout">Hangout</option>
+                    <option value="savings">Savings</option>
+                    <option value="playstation">PlayStation / Mobily</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">To</label>
+                <select class="form-select" id="transferTo">
+                    <option value="savings">Savings</option>
+                    <option value="hangout">Hangout</option>
+                    <option value="playstation">PlayStation / Mobily</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Amount (SAR)</label>
+                <input type="number" class="form-input" id="transferAmount" placeholder="30">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('transferModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="transferMoney()">Transfer</button>
+            </div>
+        </div>
     </div>
 
-    <div class="sect"><h2>Next Allowance Plan</h2></div>
-    <div class="card" id="planCard" style="padding:16px"></div>
-
-    <div class="sect"><h2>Recent</h2><button class="link" onclick="go('history')">See all</button></div>
-    <div class="list" id="recentList"></div>
-  </section>
-
-  <!-- ================= HISTORY ================= -->
-  <section class="screen" data-screen="history">
-    <div class="sect" style="margin-top:2px"><h2>Money History</h2></div>
-    <div class="card" style="padding:12px 14px">
-      <div class="chips" id="histFilter">
-        <div class="chip" data-f="all" data-on="1" onclick="setFilter('all')">All</div>
-        <div class="chip" data-f="hangout" onclick="setFilter('hangout')">🍔</div>
-        <div class="chip" data-f="savings" onclick="setFilter('savings')">🏦</div>
-        <div class="chip" data-f="ps" onclick="setFilter('ps')">🎮</div>
-      </div>
+    <!-- Purchase Modal -->
+    <div class="modal" id="purchaseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Add Purchase</div>
+                <button class="close-btn" onclick="closeModal('purchaseModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Purchase Name</label>
+                <input type="text" class="form-input" id="purchaseName" placeholder="Lunch, Game, etc.">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Cost (SAR)</label>
+                <input type="number" class="form-input" id="purchaseCost" placeholder="25">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="purchaseCategory">
+                    <option value="hangout">Hangout</option>
+                    <option value="savings">Savings</option>
+                    <option value="playstation">PlayStation / Mobily</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('purchaseModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="addPurchase()">Add Purchase</button>
+            </div>
+        </div>
     </div>
-    <div class="card" style="padding:14px 16px">
-      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted)">
-        <span>Received</span><span class="amt pos mono" id="statIn">0 SAR</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:7px">
-        <span>Spent</span><span class="amt neg mono" id="statOut">0 SAR</span></div>
+
+    <!-- Edit Money Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Edit Money</div>
+                <button class="close-btn" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Hangout Balance (SAR)</label>
+                <input type="number" class="form-input" id="editHangout" placeholder="Current balance">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Savings Balance (SAR)</label>
+                <input type="number" class="form-input" id="editSavings" placeholder="Current balance">
+            </div>
+            <div class="form-group">
+                <label class="form-label">PlayStation Balance (SAR)</label>
+                <input type="number" class="form-input" id="editPlaystation" placeholder="Current balance">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('editModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="editMoney()">Save Changes</button>
+            </div>
+        </div>
     </div>
-    <div class="list" id="histList"></div>
-  </section>
 
-  <!-- ================= GOALS ================= -->
-  <section class="screen" data-screen="goals">
-    <div class="sect" style="margin-top:2px"><h2>Savings Goals</h2></div>
-    <div id="goalList"></div>
-    <button class="btn ghost" style="margin-top:12px" onclick="openSheet('goalSheet')">＋ New Goal</button>
-    <div class="card" style="margin-top:14px">
-      <div style="font-size:13px;color:var(--muted);line-height:1.6">
-        Goals track against your <b style="color:var(--savings)">Savings</b> balance
-        (<span class="mono" id="goalSavingsHint">0</span> SAR available).
-      </div>
+    <!-- Goals Modal -->
+    <div class="modal" id="goalsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Goals</div>
+                <button class="close-btn" onclick="closeModal('goalsModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">New Goal Name</label>
+                <input type="text" class="form-input" id="goalName" placeholder="FC 27, Keyboard, etc.">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Target Amount (SAR)</label>
+                <input type="number" class="form-input" id="goalAmount" placeholder="200">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('goalsModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="addGoal()">Add Goal</button>
+            </div>
+            <div style="margin-top: 20px;">
+                <div class="section-title">Your Goals</div>
+                <div class="goals-grid" id="goalsList">
+                    <div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">
+                        No goals yet
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </section>
 
-  <!-- ================= ADVISOR ================= -->
-  <section class="screen" data-screen="ai">
-    <div class="sect" style="margin-top:2px"><h2>Money Advisor</h2><button class="link" onclick="clearChat()">Clear</button></div>
-    <div class="card">
-      <div class="chat" id="chat"></div>
-      <div class="qbox">
-        <input id="askInput" placeholder="Can I buy FC 27?" onkeydown="if(event.key==='Enter')ask()" />
-        <button onclick="ask()">↑</button>
-      </div>
-      <div class="sugg">
-        <button onclick="quick('Can I buy FC 27?')">Can I buy FC 27?</button>
-        <button onclick="quick('Can I go trampoline and Herfy?')">Trampoline + Herfy?</button>
-        <button onclick="quick('How am I doing this month?')">How am I doing?</button>
-        <button onclick="quick('Should I buy something for 60 SAR?')">Worth 60 SAR?</button>
-      </div>
+    <!-- Edit Transaction Modal -->
+    <div class="modal" id="editTransactionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Edit Transaction</div>
+                <button class="close-btn" onclick="closeModal('editTransactionModal')">&times;</button>
+            </div>
+            <input type="hidden" id="editTransactionId">
+            <div class="form-group">
+                <label class="form-label">Transaction Type</label>
+                <select class="form-select" id="editTransactionType" disabled>
+                    <option value="Allowance">Allowance</option>
+                    <option value="Add Money">Add Money</option>
+                    <option value="Transfer">Transfer</option>
+                    <option value="Purchase">Purchase</option>
+                    <option value="Manual Edit">Manual Edit</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Amount (SAR)</label>
+                <input type="number" class="form-input" id="editTransactionAmount">
+            </div>
+            <div class="form-group" id="editTransactionCategoryGroup">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="editTransactionCategory">
+                    <option value="hangout">Hangout</option>
+                    <option value="savings">Savings</option>
+                    <option value="playstation">PlayStation / Mobily</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <input type="text" class="form-input" id="editTransactionNotes" placeholder="Optional notes">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('editTransactionModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="saveTransactionEdit()">Save Changes</button>
+            </div>
+        </div>
     </div>
-  </section>
 
-  <!-- ================= SETTINGS ================= -->
-  <section class="screen" data-screen="more">
-    <div class="sect" style="margin-top:2px"><h2>Fix &amp; Settings</h2></div>
-    <div class="card">
-      <div style="font-size:15px;font-weight:700">Edit balances</div>
-      <p class="hint" style="color:var(--muted);font-size:12.5px;margin:6px 0 0">Manually correct any mistakes. This is logged in history.</p>
-      <label class="f">🍔 Hangout</label><input id="eH" type="number" step="0.01" inputmode="decimal" />
-      <label class="f">🏦 Savings</label><input id="eS" type="number" step="0.01" inputmode="decimal" />
-      <label class="f">🎮 PlayStation / Mobily</label><input id="eP" type="number" step="0.01" inputmode="decimal" />
-      <button class="btn primary" style="margin-top:14px" onclick="saveEdit()">Save balances</button>
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Delete Transaction</div>
+                <button class="close-btn" onclick="closeModal('deleteModal')">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px; color: rgba(255,255,255,0.8);">
+                Are you sure you want to delete this transaction? This action cannot be undone.
+            </p>
+            <input type="hidden" id="deleteTransactionId">
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('deleteModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="confirmDelete()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%);">Delete</button>
+            </div>
+        </div>
     </div>
-    <div class="card">
-      <div style="font-size:15px;font-weight:700">Monthly allowance</div>
-      <label class="f">Amount (SAR)</label><input id="eAllow" type="number" step="1" inputmode="decimal" />
-      <button class="btn ghost sm" style="margin-top:12px" onclick="saveAllowance()">Save amount</button>
-    </div>
-    <div class="card">
-      <div style="font-size:15px;font-weight:700">Month type</div>
-      <p class="hint" style="color:var(--muted);font-size:12.5px;margin:6px 0 10px">
-        Month type only changes how <b>new</b> allowance is split. It never touches money you already have.</p>
-      <button class="btn ghost sm" onclick="openPlanNext()">📅 Plan next allowance</button>
-    </div>
-    <div class="card">
-      <div style="font-size:15px;font-weight:700">Data</div>
-      <div class="row" style="margin-top:12px">
-        <button class="btn ghost sm" onclick="exportData()">⬇︎ Export JSON</button>
-        <button class="btn danger sm" onclick="resetAll()">Reset everything</button>
-      </div>
-      <p class="hint" style="color:var(--muted);font-size:12px;margin:10px 0 0">
-        Synced to Firebase and cached offline on this device.</p>
-    </div>
-  </section>
-</div>
 
-<!-- ================= TAB BAR ================= -->
-<nav class="tabs"><div class="inner">
-  <button data-tab="home" data-on="1" onclick="go('home')"><b>🏠</b><span>Home</span></button>
-  <button data-tab="history" onclick="go('history')"><b>🧾</b><span>History</span></button>
-  <button data-tab="goals" onclick="go('goals')"><b>🎯</b><span>Goals</span></button>
-  <button data-tab="ai" onclick="go('ai')"><b>🤖</b><span>Advisor</span></button>
-  <button data-tab="more" onclick="go('more')"><b>⚙️</b><span>Settings</span></button>
-</div></nav>
+    <div class="notification" id="notification"></div>
 
-<!-- ================= SHEETS ================= -->
-<div class="scrim" id="scrim" onclick="closeSheets()"></div>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, get, update, onValue, push, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-<!-- Allowance: choose month type -->
-<div class="sheet" id="allowanceSheet">
-  <div class="grab"></div>
-  <h3>I Got Allowance 💸</h3>
-  <p class="hint">Adding <b class="mono" id="allowAmtLbl">120</b> SAR. What kind of month is this?
-     Your existing money is never reset — this only splits the new money.</p>
-  <button class="opt" onclick="addAllowance('hangout')">
-    <span class="oe">🍔</span><span><span class="ot">Hangout Month</span>
-    <span class="od" id="optHangout"></span></span></button>
-  <button class="opt" onclick="addAllowance('nohangout')">
-    <span class="oe">🏠</span><span><span class="ot">No Hangout Month</span>
-    <span class="od" id="optNo"></span></span></button>
-  <button class="opt" onclick="addAllowance('unsure')">
-    <span class="oe">❓</span><span><span class="ot">Not Sure Yet</span>
-    <span class="od" id="optUnsure"></span></span></button>
-  <button class="btn ghost sm" onclick="closeSheets()">Cancel</button>
-</div>
-
-<!-- Plan next allowance -->
-<div class="sheet" id="planSheet">
-  <div class="grab"></div>
-  <h3>Plan Next Allowance 📅</h3>
-  <p class="hint">Pick the month type only when you know. This changes the split used for your
-     <b>next</b> allowance — your current balances stay exactly as they are.</p>
-  <button class="opt" onclick="setPlan('hangout')"><span class="oe">🍔</span><span>
-    <span class="ot">We are going out this month</span><span class="od" id="planHangout"></span></span></button>
-  <button class="opt" onclick="setPlan('nohangout')"><span class="oe">🏠</span><span>
-    <span class="ot">No hangouts — save more</span><span class="od" id="planNo"></span></span></button>
-  <button class="opt" onclick="setPlan('unsure')"><span class="oe">❓</span><span>
-    <span class="ot">Not sure yet</span><span class="od" id="planUnsure"></span></span></button>
-  <button class="btn ghost sm" onclick="closeSheets()">Close</button>
-</div>
-
-<!-- Add purchase -->
-<div class="sheet" id="purchaseSheet">
-  <div class="grab"></div>
-  <h3>Add Purchase 🛍️</h3>
-  <p class="hint">Money is subtracted from the category you choose.</p>
-  <label class="f">What did you buy?</label>
-  <input id="pName" placeholder="Herfy" />
-  <label class="f">Price (SAR)</label>
-  <input id="pPrice" type="number" step="0.01" inputmode="decimal" placeholder="30" />
-  <label class="f">Take it from</label>
-  <div class="chips" id="pCat">
-    <div class="chip" data-c="hangout" data-on="1" onclick="pickCat('hangout')">🍔 Hangout</div>
-    <div class="chip" data-c="savings" onclick="pickCat('savings')">🏦 Savings</div>
-    <div class="chip" data-c="ps" onclick="pickCat('ps')">🎮 PS</div>
-  </div>
-  <div id="pAdvice" style="font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.5"></div>
-  <button class="btn primary" style="margin-top:12px" onclick="addPurchase()">Save purchase</button>
-  <button class="btn ghost sm" style="margin-top:8px" onclick="closeSheets()">Cancel</button>
-</div>
-
-<!-- New goal -->
-<div class="sheet" id="goalSheet">
-  <div class="grab"></div>
-  <h3>New Savings Goal 🎯</h3>
-  <label class="f">Name</label><input id="gName" placeholder="FC 27" />
-  <label class="f">Target (SAR)</label><input id="gTarget" type="number" step="1" inputmode="decimal" placeholder="200" />
-  <label class="f">Emoji (optional)</label><input id="gEmoji" placeholder="🎮" maxlength="4" />
-  <button class="btn primary" style="margin-top:14px" onclick="addGoal()">Create goal</button>
-  <button class="btn ghost sm" style="margin-top:8px" onclick="closeSheets()">Cancel</button>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<!-- ============ Firebase (compat build = works from a single file) ============ -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-
-<script>
-/* =========================================================================
-   1. CONFIG
-   ========================================================================= */
-const firebaseConfig = {
-  apiKey: "AIzaSyCugS0qHKstXGZArd5vEBzm-DaLZAIDugo",
-  authDomain: "money-e560a.firebaseapp.com",
-  databaseURL: "https://money-e560a-default-rtdb.firebaseio.com",
-  projectId: "money-e560a",
-  storageBucket: "money-e560a.firebasestorage.app",
-  messagingSenderId: "477551627159",
-  appId: "1:477551627159:web:b19f853905331f71ee92d2",
-  measurementId: "G-YYQD2E5J7J"
-};
-
-const DB_PATH   = "users/asser";      // everything lives under this node
-const CACHE_KEY = "masareef_cache_v1";
-const SAVE_MIN  = 100;                // advisor tries to keep this much in savings
-
-// The three month types and how a new allowance is split.
-const SPLITS = {
-  hangout:   { label:"Hangout Month",    emoji:"🍔", hangout:65, savings:40, ps:15 },
-  nohangout: { label:"No Hangout Month", emoji:"🏠", hangout:20, savings:85, ps:15 },
-  unsure:    { label:"Not Sure Yet",     emoji:"❓", hangout:40, savings:65, ps:15 }
-};
-const CATS = {
-  hangout:{ label:"Hangout", emoji:"🍔", color:"var(--hangout)" },
-  savings:{ label:"Savings", emoji:"🏦", color:"var(--savings)" },
-  ps:     { label:"PlayStation / Mobily", emoji:"🎮", color:"var(--ps)" }
-};
-
-/* =========================================================================
-   2. STATE
-   ========================================================================= */
-let state = {
-  allowanceAmount: 120,
-  balances: { hangout:0, savings:0, ps:0 },
-  monthType: "unsure",      // type used for the LAST allowance received
-  nextPlan: null,           // planned type for the NEXT allowance (null = ask me)
-  history: {},              // id -> entry
-  goals: {},                // id -> goal
-  chat: []                  // advisor conversation (local only)
-};
-let db = null, ref = null, remoteReady = false, muteRemote = false;
-let filter = "all", purchaseCat = "hangout";
-
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
-const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
-const money = n => (Math.round(n*100)/100).toLocaleString("en-US",{maximumFractionDigits:2});
-const total = () => state.balances.hangout + state.balances.savings + state.balances.ps;
-const histArr = () => Object.values(state.history).sort((a,b)=>b.ts-a.ts);
-const goalArr = () => Object.values(state.goals).sort((a,b)=>a.ts-b.ts);
-const plannedType = () => state.nextPlan || "unsure";
-
-/* =========================================================================
-   3. PERSISTENCE — Firebase Realtime DB + localStorage fallback
-   ========================================================================= */
-function setSync(kind, text){
-  const d = document.getElementById("syncDot");
-  d.className = "dot" + (kind === "ok" ? "" : kind === "err" ? " err" : " off");
-  document.getElementById("syncTxt").textContent = text;
-}
-
-function loadCache(){
-  try{
-    const raw = localStorage.getItem(CACHE_KEY);
-    if(raw) state = Object.assign(state, JSON.parse(raw));
-  }catch(e){ console.warn("cache read failed", e); }
-}
-function saveCache(){
-  try{ localStorage.setItem(CACHE_KEY, JSON.stringify(state)); }catch(e){}
-}
-
-function initFirebase(){
-  try{
-    firebase.initializeApp(firebaseConfig);
-    db  = firebase.database();
-    ref = db.ref(DB_PATH);
-
-    // live connection indicator
-    db.ref(".info/connected").on("value", s => {
-      if(s.val()) setSync("ok","synced");
-      else if(remoteReady) setSync("off","offline");
-    });
-
-    // realtime listener: keeps every device in sync
-    ref.on("value", snap => {
-      remoteReady = true;
-      const v = snap.val();
-      if(v && !muteRemote){
-        state.allowanceAmount = num(v.allowanceAmount) || state.allowanceAmount;
-        state.balances = {
-          hangout: num(v.balances && v.balances.hangout),
-          savings: num(v.balances && v.balances.savings),
-          ps:      num(v.balances && v.balances.ps)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCugS0qHKstGZArd5vEBzm-DaLZAIDugo",
+            authDomain: "money-e560a.firebaseapp.com",
+            databaseURL: "https://money-e560a-default-rtdb.firebaseio.com",
+            projectId: "money-e560a",
+            storageBucket: "money-e560a.firebasestorage.app",
+            messagingSenderId: "477551627159",
+            appId: "1:477551627159:web:b19f853905331f71ee92d2",
+            measurementId: "G-YYQD2E5J7J"
         };
-        state.monthType = v.monthType || state.monthType;
-        state.nextPlan  = v.nextPlan || null;
-        state.history   = v.history || {};
-        state.goals     = v.goals   || {};
-        saveCache();
-      }else if(!v){
-        push();   // first ever run: seed the database with local state
-      }
-      render();
-    }, err => { console.warn(err); setSync("err","local only"); });
-  }catch(e){
-    console.warn("Firebase unavailable, using local storage", e);
-    setSync("err","local only");
-  }
-}
 
-/** Write the whole state up to Firebase (small doc, so this is cheap & safe). */
-function push(){
-  saveCache();
-  if(!ref) return;
-  muteRemote = true;                       // avoid echo while our own write lands
-  ref.set({
-    allowanceAmount: state.allowanceAmount,
-    balances: state.balances,
-    monthType: state.monthType,
-    nextPlan: state.nextPlan,
-    history: state.history,
-    goals: state.goals,
-    updatedAt: Date.now()
-  }).catch(e => { console.warn(e); setSync("err","save failed"); })
-    .finally(() => { muteRemote = false; });
-}
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
 
-/* =========================================================================
-   4. UI HELPERS
-   ========================================================================= */
-function go(screen){
-  document.querySelectorAll("[data-screen]").forEach(s =>
-    s.dataset.on = s.dataset.screen === screen ? "1" : "0");
-  document.querySelectorAll("nav.tabs button").forEach(b =>
-    b.dataset.on = b.dataset.tab === screen ? "1" : "0");
-  window.scrollTo({top:0,behavior:"smooth"});
-  if(screen === "more") fillEdit();
-}
-function openSheet(id){
-  closeSheets();
-  document.getElementById("scrim").dataset.open = "1";
-  document.getElementById(id).dataset.open = "1";
-}
-function closeSheets(){
-  document.getElementById("scrim").dataset.open = "0";
-  document.querySelectorAll(".sheet").forEach(s => s.dataset.open = "0");
-}
-let toastTimer;
-function toast(msg){
-  const t = document.getElementById("toast");
-  t.textContent = msg; t.dataset.open = "1";
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.dataset.open = "0", 2400);
-}
-function splitText(k){
-  const s = SPLITS[k];
-  return `🍔 ${s.hangout} · 🏦 ${s.savings} · 🎮 ${s.ps} SAR`;
-}
-function fmtDate(ts){
-  return new Date(ts).toLocaleString("en-GB",
-    {day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
-}
+        // Data structure
+        let balances = {
+            hangout: 0,
+            savings: 0,
+            playstation: 0
+        };
 
-/* =========================================================================
-   5. RENDER
-   ========================================================================= */
-function render(){
-  const b = state.balances;
+        let history = [];
+        let historyKeys = []; // Store Firebase keys for editing/deleting
+        let goals = [];
+        let spendingChart = null;
+        let allowanceChart = null;
 
-  // hero + tiles
-  document.getElementById("totalVal").innerHTML = money(total()) + "<small>SAR</small>";
-  const mt = SPLITS[state.monthType] || SPLITS.unsure;
-  document.getElementById("monthPill").textContent = mt.emoji + " " + mt.label;
+        // Initialize
+        function init() {
+            const balancesRef = ref(database, 'balances');
+            onValue(balancesRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    balances = snapshot.val();
+                    updateUI();
+                }
+            });
 
-  const max = Math.max(total(), 1);
-  [["h","hangout"],["s","savings"],["p","ps"]].forEach(([k,c]) => {
-    document.getElementById(k+"Val").textContent = money(b[c]);
-    document.getElementById(k+"Bar").style.width = Math.max(0, Math.min(100, b[c]/max*100)) + "%";
-  });
+            const historyRef = ref(database, 'history');
+            onValue(historyRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const historyData = snapshot.val();
+                    history = Object.values(historyData).reverse();
+                    historyKeys = Object.keys(historyData).reverse();
+                    updateActivityList();
+                    updateCharts();
+                }
+            });
 
-  // next-allowance plan card
-  const pk = plannedType(), p = SPLITS[pk];
-  document.getElementById("planCard").innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px">
-      <div style="font-size:26px">${p.emoji}</div>
-      <div style="flex:1">
-        <div style="font-size:15px;font-weight:700">${state.nextPlan ? p.label : "Not decided yet"}</div>
-        <div style="font-size:12.5px;color:var(--muted);margin-top:3px">${splitText(pk)}</div>
-      </div>
-      <button class="btn ghost sm" style="width:auto;padding:9px 13px" onclick="openPlanNext()">Change</button>
-    </div>`;
+            const goalsRef = ref(database, 'goals');
+            onValue(goalsRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    goals = Object.values(snapshot.val());
+                    updateGoalsList();
+                }
+            });
 
-  // month-type option descriptions
-  ["hangout","nohangout","unsure"].forEach(k => {
-    const a = state.allowanceAmount, s = SPLITS[k];
-    const scale = a / 120;   // scale the split if allowance amount was customised
-    const txt = `🍔 ${money(s.hangout*scale)} · 🏦 ${money(s.savings*scale)} · 🎮 ${money(s.ps*scale)} SAR`;
-    const map = {hangout:["optHangout","planHangout"], nohangout:["optNo","planNo"], unsure:["optUnsure","planUnsure"]};
-    map[k].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = txt; });
-  });
-  document.getElementById("allowAmtLbl").textContent = money(state.allowanceAmount);
-  document.getElementById("todayLbl").textContent =
-    new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+            // Check if data exists, if not initialize
+            get(balancesRef).then((snapshot) => {
+                if (!snapshot.exists()) {
+                    set(balancesRef, balances);
+                }
+            });
+        }
 
-  renderHistory();
-  renderGoals();
-  renderChat();
-  updatePurchaseAdvice();
-}
+        // Update UI
+        function updateUI() {
+            const total = balances.hangout + balances.savings + balances.playstation;
+            document.getElementById('totalBalance').textContent = `${total} SAR`;
+            document.getElementById('hangoutBalance').textContent = `${balances.hangout} SAR`;
+            document.getElementById('savingsBalance').textContent = `${balances.savings} SAR`;
+            document.getElementById('playstationBalance').textContent = `${balances.playstation} SAR`;
 
-function itemHTML(e, withDelete){
-  const cat = CATS[e.category] || {emoji:"💰", label:"Money"};
-  const pos = e.amount > 0;
-  const ico = e.type === "allowance" ? "💸" : e.type === "edit" ? "✏️" : cat.emoji;
-  const sub = (e.type === "allowance" ? (SPLITS[e.monthType] ? SPLITS[e.monthType].label : "Allowance")
-              : e.type === "edit" ? "Manual fix" : cat.label) + " • " + fmtDate(e.ts);
-  return `<div class="item">
-    <div class="ico">${ico}</div>
-    <div class="mid"><div class="t">${escapeHTML(e.name)}</div><div class="d">${sub}</div></div>
-    <div class="amt ${pos?"pos":"neg"}">${pos?"+":"−"}${money(Math.abs(e.amount))}</div>
-    ${withDelete ? `<button class="x" title="Undo entry" onclick="removeEntry('${e.id}')">✕</button>` : ""}
-  </div>`;
-}
-function escapeHTML(s){
-  return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
-    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
+            // Check Hangout limit
+            const hangoutLimit = document.getElementById('hangoutLimit');
+            if (balances.hangout > 110) {
+                hangoutLimit.innerHTML = `<span class="limit-warning">⚠️ Over limit! ${balances.hangout - 110} SAR should move to Savings</span>`;
+            } else {
+                hangoutLimit.textContent = `Limit: 110 SAR (${110 - balances.hangout} SAR remaining)`;
+            }
 
-function renderHistory(){
-  const all = histArr();
-  const recent = document.getElementById("recentList");
-  recent.innerHTML = all.slice(0,4).map(e => itemHTML(e,false)).join("") ||
-    `<div class="empty">No activity yet.<br>Tap <b>I Got Allowance</b> to start.</div>`;
+            // Update edit modal with current values
+            document.getElementById('editHangout').placeholder = balances.hangout;
+            document.getElementById('editSavings').placeholder = balances.savings;
+            document.getElementById('editPlaystation').placeholder = balances.playstation;
+        }
 
-  const rows = all.filter(e => filter === "all" || e.category === filter);
-  document.getElementById("histList").innerHTML =
-    rows.map(e => itemHTML(e,true)).join("") || `<div class="empty">Nothing here yet.</div>`;
+        // Update activity list
+        function updateActivityList() {
+            const activityList = document.getElementById('activityList');
+            if (history.length === 0) {
+                activityList.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">No activity yet</div>';
+                return;
+            }
 
-  let inn = 0, out = 0;
-  rows.forEach(e => e.amount > 0 ? inn += e.amount : out += -e.amount);
-  document.getElementById("statIn").textContent  = "+" + money(inn) + " SAR";
-  document.getElementById("statOut").textContent = "−" + money(out) + " SAR";
-}
-function setFilter(f){
-  filter = f;
-  document.querySelectorAll("#histFilter .chip").forEach(c => c.dataset.on = c.dataset.f === f ? "1":"0");
-  renderHistory();
-}
+            activityList.innerHTML = history.slice(0, 10).map((item, index) => `
+                <div class="history-item">
+                    <div class="history-info">
+                        <div class="history-type">${item.type}</div>
+                        <div class="history-date">${new Date(item.date).toLocaleDateString()}</div>
+                        ${item.notes ? `<div style="font-size: 12px; color: rgba(255,255,255,0.5);">${item.notes}</div>` : ''}
+                    </div>
+                    <div class="history-amount ${item.amount >= 0 ? 'positive' : 'negative'}">
+                        ${item.amount >= 0 ? '+' : ''}${item.amount} SAR
+                    </div>
+                    <div class="history-actions">
+                        <button class="history-action-btn edit" onclick="openEditTransaction(${index})">✏️</button>
+                        <button class="history-action-btn delete" onclick="openDeleteModal(${index})">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-function renderGoals(){
-  const gs = goalArr(), sav = state.balances.savings;
-  document.getElementById("goalSavingsHint").textContent = money(sav);
-  document.getElementById("goalList").innerHTML = gs.length ? gs.map(g => {
-    const pct = Math.max(0, Math.min(100, sav / Math.max(g.target,1) * 100));
-    const left = Math.max(0, g.target - sav);
-    return `<div class="goal ${pct>=100?"done":""}">
-      <div class="gh"><div class="gn">${escapeHTML(g.emoji||"🎯")} ${escapeHTML(g.name)}</div>
-        <div class="gp">${money(Math.min(sav,g.target))}/${money(g.target)} SAR</div></div>
-      <div class="track"><span style="width:${pct}%"></span></div>
-      <div class="gf"><div class="gs">${pct>=100
-        ? "🎉 You can buy it now!"
-        : `${money(left)} SAR to go • ${Math.round(pct)}%`}</div>
-        <button class="x" onclick="removeGoal('${g.id}')">✕</button></div>
-    </div>`;
-  }).join("") : `<div class="empty">No goals yet.<br>Add one like “FC 27 — 200 SAR”.</div>`;
-}
+        // Update goals list
+        function updateGoalsList() {
+            const goalsList = document.getElementById('goalsList');
+            if (goals.length === 0) {
+                goalsList.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">No goals yet</div>';
+                return;
+            }
 
-/* =========================================================================
-   6. ALLOWANCE
-   ========================================================================= */
-function openAllowance(){ openSheet("allowanceSheet"); }
-function openPlanNext(){ openSheet("planSheet"); }
+            const totalSavings = balances.savings;
+            goalsList.innerHTML = goals.map(goal => {
+                const progress = Math.min((totalSavings / goal.amount) * 100, 100);
+                const remaining = Math.max(goal.amount - totalSavings, 0);
+                return `
+                    <div class="goal-card">
+                        <div class="goal-header">
+                            <div class="goal-name">${goal.name}</div>
+                            <div class="goal-amount">${goal.amount} SAR</div>
+                        </div>
+                        <div class="goal-progress">
+                            <div class="goal-progress-bar" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="goal-status">
+                            ${progress >= 100 ? '🎉 Goal reached!' : `${remaining} SAR to go`}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
 
-/** Add the monthly allowance using the chosen month-type split. Never resets money. */
-function addAllowance(type){
-  const s = SPLITS[type], scale = state.allowanceAmount / 120;
-  const add = {
-    hangout: s.hangout*scale,
-    savings: s.savings*scale,
-    ps:      s.ps*scale
-  };
-  state.balances.hangout += add.hangout;
-  state.balances.savings += add.savings;
-  state.balances.ps      += add.ps;
-  state.monthType = type;
-  state.nextPlan  = null;                     // plan consumed
-  log({ type:"allowance", name:"Allowance received", amount:state.allowanceAmount,
-        category:"all", monthType:type, split:add });
-  closeSheets(); push(); render();
-  toast(`+${money(state.allowanceAmount)} SAR added • ${s.label}`);
-}
+        // Update charts
+        function updateCharts() {
+            const spendingByCategory = {
+                hangout: 0,
+                savings: 0,
+                playstation: 0
+            };
 
-/** Choose the month type for the NEXT allowance without touching current money. */
-function setPlan(type){
-  state.nextPlan = type;
-  closeSheets(); push(); render();
-  toast("Next allowance planned: " + SPLITS[type].label);
-}
+            const allowanceOverTime = [];
 
-/* =========================================================================
-   7. PURCHASES / EDITS / HISTORY
-   ========================================================================= */
-function log(entry){
-  const id = uid();
-  state.history[id] = Object.assign({ id, ts: Date.now() }, entry);
-}
+            history.forEach(item => {
+                if (item.type === 'Purchase') {
+                    spendingByCategory[item.category] += Math.abs(item.amount);
+                }
+                if (item.type === 'Allowance') {
+                    allowanceOverTime.push({
+                        date: new Date(item.date).toLocaleDateString(),
+                        amount: item.amount
+                    });
+                }
+            });
 
-function pickCat(c){
-  purchaseCat = c;
-  document.querySelectorAll("#pCat .chip").forEach(x => x.dataset.on = x.dataset.c === c ? "1":"0");
-  updatePurchaseAdvice();
-}
+            // Spending Chart
+            const spendingCtx = document.getElementById('spendingChart').getContext('2d');
+            if (spendingChart) {
+                spendingChart.destroy();
+            }
+            spendingChart = new Chart(spendingCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hangout', 'Savings', 'PlayStation'],
+                    datasets: [{
+                        data: [spendingByCategory.hangout, spendingByCategory.savings, spendingByCategory.playstation],
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(46, 213, 115, 0.8)',
+                            'rgba(255, 107, 107, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(102, 126, 234, 1)',
+                            'rgba(46, 213, 115, 1)',
+                            'rgba(255, 107, 107, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'white',
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
 
-/** Live hint inside the purchase sheet (mini advisor). */
-function updatePurchaseAdvice(){
-  const el = document.getElementById("pAdvice");
-  if(!el) return;
-  const price = num(document.getElementById("pPrice").value);
-  const bal = state.balances[purchaseCat];
-  if(!price){ el.textContent = `${CATS[purchaseCat].emoji} ${CATS[purchaseCat].label} balance: ${money(bal)} SAR`; return; }
-  const after = bal - price;
-  let msg = `After this: ${money(after)} SAR left in ${CATS[purchaseCat].label}.`;
-  if(after < 0) msg += " ⚠️ That is more than you have there.";
-  else if(purchaseCat === "savings" && state.balances.savings - price < SAVE_MIN)
-    msg += ` ⚠️ Savings would drop under ${SAVE_MIN} SAR.`;
-  el.textContent = msg;
-}
-document.addEventListener("input", e => { if(e.target.id === "pPrice") updatePurchaseAdvice(); });
+            // Allowance Chart
+            const allowanceCtx = document.getElementById('allowanceChart').getContext('2d');
+            if (allowanceChart) {
+                allowanceChart.destroy();
+            }
+            allowanceChart = new Chart(allowanceCtx, {
+                type: 'line',
+                data: {
+                    labels: allowanceOverTime.slice(-6).map(a => a.date),
+                    datasets: [{
+                        label: 'Allowance',
+                        data: allowanceOverTime.slice(-6).map(a => a.amount),
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
 
-function addPurchase(){
-  const name  = document.getElementById("pName").value.trim() || "Purchase";
-  const price = num(document.getElementById("pPrice").value);
-  if(price <= 0){ toast("Enter a price first"); return; }
-  state.balances[purchaseCat] -= price;
-  log({ type:"purchase", name, amount:-price, category:purchaseCat });
-  document.getElementById("pName").value = "";
-  document.getElementById("pPrice").value = "";
-  closeSheets(); push(); render();
-  toast(`−${money(price)} SAR from ${CATS[purchaseCat].label}`);
-}
+        // Add to history
+        function addToHistory(type, amount, category = null, notes = null) {
+            const historyRef = ref(database, 'history');
+            const newEntry = {
+                type,
+                amount,
+                category,
+                notes,
+                date: new Date().toISOString()
+            };
+            push(historyRef, newEntry);
+        }
 
-/** Remove a history entry and reverse its effect on the balances. */
-function removeEntry(id){
-  const e = state.history[id];
-  if(!e) return;
-  if(!confirm(`Undo “${e.name}”? Balances will be reversed.`)) return;
-  if(e.type === "allowance" && e.split){
-    state.balances.hangout -= num(e.split.hangout);
-    state.balances.savings -= num(e.split.savings);
-    state.balances.ps      -= num(e.split.ps);
-  }else if(e.type === "edit" && e.before){
-    state.balances = { hangout:num(e.before.hangout), savings:num(e.before.savings), ps:num(e.before.ps) };
-  }else if(e.type === "purchase"){
-    state.balances[e.category] -= e.amount;    // amount is negative → adds back
-  }
-  delete state.history[id];
-  push(); render(); toast("Entry undone");
-}
+        // Check and enforce Hangout limit
+        function checkHangoutLimit() {
+            if (balances.hangout > 110) {
+                const excess = balances.hangout - 110;
+                balances.hangout = 110;
+                balances.savings += excess;
+                set(ref(database, 'balances'), balances);
+                addToHistory('Auto Transfer', excess, 'hangout', `Moved ${excess} SAR from Hangout to Savings (limit exceeded)`);
+                showNotification(`Moved ${excess} SAR to Savings (Hangout limit exceeded)`);
+            }
+        }
 
-function fillEdit(){
-  document.getElementById("eH").value = state.balances.hangout;
-  document.getElementById("eS").value = state.balances.savings;
-  document.getElementById("eP").value = state.balances.ps;
-  document.getElementById("eAllow").value = state.allowanceAmount;
-}
-function saveEdit(){
-  const before = Object.assign({}, state.balances);
-  const after = {
-    hangout: num(document.getElementById("eH").value),
-    savings: num(document.getElementById("eS").value),
-    ps:      num(document.getElementById("eP").value)
-  };
-  const diff = (after.hangout+after.savings+after.ps) - (before.hangout+before.savings+before.ps);
-  state.balances = after;
-  log({ type:"edit", name:"Balances corrected", amount:diff, category:"all", before, after });
-  push(); render(); toast("Balances saved");
-}
-function saveAllowance(){
-  const a = num(document.getElementById("eAllow").value);
-  if(a <= 0){ toast("Enter a valid amount"); return; }
-  state.allowanceAmount = a; push(); render(); toast("Allowance set to " + money(a) + " SAR");
-}
+        // Modal functions
+        window.openAllowanceModal = function() {
+            document.getElementById('allowanceModal').classList.add('active');
+        };
 
-/* =========================================================================
-   8. GOALS
-   ========================================================================= */
-function addGoal(){
-  const name = document.getElementById("gName").value.trim();
-  const target = num(document.getElementById("gTarget").value);
-  const emoji = document.getElementById("gEmoji").value.trim() || "🎯";
-  if(!name || target <= 0){ toast("Add a name and a target"); return; }
-  const id = uid();
-  state.goals[id] = { id, name, target, emoji, ts: Date.now() };
-  document.getElementById("gName").value = "";
-  document.getElementById("gTarget").value = "";
-  document.getElementById("gEmoji").value = "";
-  closeSheets(); push(); render(); toast("Goal added: " + name);
-}
-function removeGoal(id){
-  if(!confirm("Delete this goal?")) return;
-  delete state.goals[id]; push(); render();
-}
+        window.openAddMoneyModal = function() {
+            document.getElementById('addMoneyModal').classList.add('active');
+        };
 
-/* =========================================================================
-   9. FREE RULE-BASED MONEY ADVISOR (no paid APIs)
-   ========================================================================= */
+        window.openTransferModal = function() {
+            document.getElementById('transferModal').classList.add('active');
+        };
 
-/** Rough price guesses so questions like "trampoline and Herfy" can be costed. */
-const PRICE_HINTS = [
-  { re:/fc ?2[4-9]|fifa|ea ?fc/i,        price:220, cat:"savings", label:"FC game" },
-  { re:/ps ?plus|playstation plus|psn/i, price:40,  cat:"ps",      label:"PS Plus" },
-  { re:/mobily|stc|zain|recharge|data/i, price:15,  cat:"ps",      label:"mobile recharge" },
-  { re:/trampoline|bounce|jump/i,        price:50,  cat:"hangout", label:"trampoline" },
-  { re:/herfy|burger|maestro|kudu|albaik|al ?baik|shawarma|mcdonald|kfc/i,
-                                          price:30, cat:"hangout", label:"fast food" },
-  { re:/cinema|movie|vox|muvi/i,         price:45,  cat:"hangout", label:"cinema" },
-  { re:/cafe|coffee|starbucks|barn|dunkin/i, price:20, cat:"hangout", label:"cafe" },
-  { re:/bowling|billiard|arcade|game ?zone/i, price:40, cat:"hangout", label:"arcade" },
-  { re:/uber|careem|taxi/i,              price:20,  cat:"hangout", label:"ride" }
-];
+        window.openPurchaseModal = function() {
+            document.getElementById('purchaseModal').classList.add('active');
+        };
 
-/** Turn a free-text question into { items, amount, category }. */
-function parseQuestion(q){
-  const lower = " " + q.toLowerCase() + " ";
-  const items = [];
-  // explicit numbers win
-  const nums = (lower.match(/\d+(\.\d+)?/g) || []).map(Number).filter(n => n > 0);
-  PRICE_HINTS.forEach(h => { if(h.re.test(lower)) items.push({ label:h.label, price:h.price, cat:h.cat }); });
+        window.openEditModal = function() {
+            document.getElementById('editModal').classList.add('active');
+        };
 
-  let amount = items.reduce((s,i) => s + i.price, 0);
-  if(nums.length){
-    // if the user typed a price, prefer it (single item) or sum (multiple)
-    const explicit = nums.reduce((a,b) => a+b, 0);
-    if(items.length <= 1){ amount = explicit; }
-    else if(explicit > amount){ amount = explicit; }
-  }
-  let cat = "hangout";
-  if(/sav|goal|fc|game|buy .*(game|console)/i.test(lower)) cat = "savings";
-  if(items.length) cat = items[0].cat;
-  if(/\bps\b|playstation|mobily|recharge/i.test(lower)) cat = "ps";
-  return { items, amount, cat };
-}
+        window.openGoalsModal = function() {
+            document.getElementById('goalsModal').classList.add('active');
+        };
 
-/**
- * The advisor. Pure rules over balances, history and goals:
- *  - keep at least SAVE_MIN in savings when possible
- *  - don't burn savings on small impulse buys
- *  - respect upcoming goals
- */
-function advise(q){
-  const b = state.balances, t = total();
-  const lower = q.toLowerCase();
-  const gs = goalArr();
-  const spent30 = histArr()
-      .filter(e => e.type === "purchase" && Date.now() - e.ts < 30*864e5)
-      .reduce((s,e) => s + -e.amount, 0);
+        window.closeModal = function(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        };
 
-  // ----- status / overview questions -----
-  if(/how am i|status|doing|summar|overview|report/.test(lower)){
-    const lines = [
-      `📊 You have ${money(t)} SAR total.`,
-      `🍔 Hangout ${money(b.hangout)} · 🏦 Savings ${money(b.savings)} · 🎮 PS ${money(b.ps)} SAR`,
-      `🧾 Spent in the last 30 days: ${money(spent30)} SAR.`
-    ];
-    lines.push(b.savings >= SAVE_MIN
-      ? `✅ Savings are above your ${SAVE_MIN} SAR safety line — nice.`
-      : `⚠️ Savings are below ${SAVE_MIN} SAR. Try to add ${money(SAVE_MIN-b.savings)} SAR before spending more.`);
-    if(gs.length){
-      const g = gs.find(x => b.savings < x.target) || gs[0];
-      const left = Math.max(0, g.target - b.savings);
-      lines.push(left ? `🎯 ${g.emoji} ${g.name}: ${money(left)} SAR to go.`
-                      : `🎯 ${g.emoji} ${g.name} is fully funded!`);
-    }
-    const plan = SPLITS[plannedType()];
-    lines.push(`📅 Next allowance plan: ${plan.emoji} ${plan.label} (${splitText(plannedType())}).`);
-    return lines.join("\n");
-  }
+        // Open edit transaction modal
+        window.openEditTransaction = function(index) {
+            const item = history[index];
+            const key = historyKeys[index];
+            
+            document.getElementById('editTransactionId').value = key;
+            document.getElementById('editTransactionType').value = item.type;
+            document.getElementById('editTransactionAmount').value = Math.abs(item.amount);
+            document.getElementById('editTransactionNotes').value = item.notes || '';
+            
+            // Show/hide category based on transaction type
+            const categoryGroup = document.getElementById('editTransactionCategoryGroup');
+            if (item.type === 'Purchase' || item.type === 'Add Money' || item.type === 'Transfer') {
+                categoryGroup.style.display = 'block';
+                document.getElementById('editTransactionCategory').value = item.category || 'hangout';
+            } else {
+                categoryGroup.style.display = 'none';
+            }
+            
+            document.getElementById('editTransactionModal').classList.add('active');
+        };
 
-  // ----- month type advice -----
-  if(/hangout month|which month|month type|should i pick/.test(lower)){
-    const need = gs.length ? Math.max(0, gs[0].target - b.savings) : 0;
-    return need > 60
-      ? `🏠 Go with a No Hangout Month. You still need ${money(need)} SAR for ${gs[0].name}, and 85 SAR/month into savings gets you there fastest.`
-      : `🍔 A Hangout Month is fine — your savings goals are close or covered, so 65 SAR of fun money won't hurt.`;
-  }
+        // Save transaction edit
+        window.saveTransactionEdit = function() {
+            const key = document.getElementById('editTransactionId').value;
+            const amount = parseInt(document.getElementById('editTransactionAmount').value);
+            const category = document.getElementById('editTransactionCategory').value;
+            const notes = document.getElementById('editTransactionNotes').value;
+            
+            if (isNaN(amount) || amount < 0) {
+                showNotification('Please enter a valid amount', true);
+                return;
+            }
+            
+            // Get original transaction
+            const originalIndex = historyKeys.indexOf(key);
+            const originalItem = history[originalIndex];
+            
+            // Calculate the difference and update balances
+            const originalAmount = Math.abs(originalItem.amount);
+            const amountDiff = amount - originalAmount;
+            
+            // Reverse the original transaction effect
+            if (originalItem.category) {
+                balances[originalItem.category] -= originalItem.amount;
+            }
+            
+            // Apply the new transaction
+            const newAmount = originalItem.amount >= 0 ? amount : -amount;
+            if (category) {
+                balances[category] += newAmount;
+            }
+            
+            // Update the transaction in Firebase
+            const transactionRef = ref(database, `history/${key}`);
+            update(transactionRef, {
+                amount: newAmount,
+                category: category,
+                notes: notes
+            });
+            
+            // Update balances
+            set(ref(database, 'balances'), balances);
+            checkHangoutLimit();
+            
+            closeModal('editTransactionModal');
+            showNotification('Transaction updated successfully!');
+        };
 
-  // ----- goal-specific -----
-  const goalHit = gs.find(g => lower.includes(g.name.toLowerCase()));
-  if(goalHit && /can i|afford|buy|enough/.test(lower)){
-    const left = goalHit.target - b.savings;
-    if(left <= 0) return `🎉 Yes! ${goalHit.emoji} ${goalHit.name} costs ${money(goalHit.target)} SAR and you already have ${money(b.savings)} SAR in savings. Go get it — after buying you'd still have ${money(b.savings-goalHit.target)} SAR saved.`;
-    const months = Math.ceil(left / 85);
-    return `⏳ Not yet. ${goalHit.name} needs ${money(goalHit.target)} SAR and savings are ${money(b.savings)} SAR — ${money(left)} SAR short.\nWith No Hangout Months (85 SAR to savings) you'd get there in about ${months} month${months>1?"s":""}. Skip ~${Math.ceil(left/30)} fast-food trips and it's even faster.`;
-  }
+        // Open delete modal
+        window.openDeleteModal = function(index) {
+            const key = historyKeys[index];
+            document.getElementById('deleteTransactionId').value = key;
+            document.getElementById('deleteModal').classList.add('active');
+        };
 
-  // ----- purchase / affordability -----
-  const p = parseQuestion(q);
-  if(p.amount > 0 && /can i|afford|should i|worth|buy|go |get /.test(lower)){
-    const list = p.items.length ? p.items.map(i => `${i.label} ~${i.price}`).join(" + ") : `${money(p.amount)} SAR`;
-    const bal = b[p.cat], cat = CATS[p.cat];
-    const after = bal - p.amount;
-    const out = [`🧮 ${list} ≈ ${money(p.amount)} SAR from ${cat.emoji} ${cat.label} (${money(bal)} SAR).`];
+        // Confirm delete
+        window.confirmDelete = function() {
+            const key = document.getElementById('deleteTransactionId').value;
+            
+            // Get the transaction to reverse its effect on balances
+            const index = historyKeys.indexOf(key);
+            const item = history[index];
+            
+            // Reverse the transaction effect
+            if (item.category) {
+                balances[item.category] -= item.amount;
+            }
+            
+            // Delete from Firebase
+            const transactionRef = ref(database, `history/${key}`);
+            set(transactionRef, null);
+            
+            // Update balances
+            set(ref(database, 'balances'), balances);
+            checkHangoutLimit();
+            
+            closeModal('deleteModal');
+            showNotification('Transaction deleted');
+        };
 
-    if(after >= 0){
-      out.push(`✅ Yes, you can. You'd have ${money(after)} SAR left in ${cat.label}.`);
-      if(p.cat === "hangout" && after < 10) out.push(`⚠️ That's almost all of your hangout money — nothing left for the rest of the month.`);
-      if(p.cat === "savings" && after < SAVE_MIN) out.push(`⚠️ It drops savings under your ${SAVE_MIN} SAR line. Only do it if it's a real goal, not an impulse.`);
-      const g = gs.find(x => b.savings < x.target);
-      if(g && p.cat === "savings") out.push(`🎯 It also pushes ${g.name} back by about ${Math.ceil(p.amount/85*10)/10} month.`);
-    }else{
-      const short = -after;
-      out.push(`❌ Not from ${cat.label} — you're ${money(short)} SAR short.`);
-      if(p.cat !== "savings" && b.savings - short >= SAVE_MIN)
-        out.push(`💡 You could cover it from savings and still keep ${money(b.savings-short)} SAR saved, but only if it's worth it.`);
-      else if(b.savings - short >= 0)
-        out.push(`💡 Savings could cover it but you'd drop to ${money(b.savings-short)} SAR — under your ${SAVE_MIN} SAR line. Better to wait for the next allowance.`);
-      else
-        out.push(`💡 Even with savings it doesn't fit (${money(t)} SAR total). Wait for the next allowance.`);
-      if(p.amount <= 40) out.push(`🕒 It's a small amount — next allowance is only a few weeks away.`);
-    }
-    return out.join("\n");
-  }
+        // Update allowance split display
+        window.updateAllowanceSplit = function() {
+            const total = parseInt(document.getElementById('allowanceAmount').value) || 120;
+            const hangout = parseInt(document.getElementById('hangoutSlider').value);
+            const savings = parseInt(document.getElementById('savingsSlider').value);
+            const playstation = parseInt(document.getElementById('playstationSlider').value);
 
-  // ----- save-more / advice -----
-  if(/save|goal|how (do|can) i/.test(lower)){
-    const g = gs[0];
-    const tip = g ? `For ${g.emoji} ${g.name} (${money(g.target)} SAR) you need ${money(Math.max(0,g.target-b.savings))} SAR more. `: "";
-    return `${tip}Best moves:\n• Pick 🏠 No Hangout Month → 85 SAR straight to savings.\n• Keep hangout spending to one outing (~30 SAR).\n• Never take savings for snacks — that's what hangout money is for.\n• Keep at least ${SAVE_MIN} SAR in savings as your safety line.`;
-  }
+            document.getElementById('hangoutSplit').textContent = `${hangout} SAR`;
+            document.getElementById('savingsSplit').textContent = `${savings} SAR`;
+            document.getElementById('playstationSplit').textContent = `${playstation} SAR`;
+        };
 
-  // ----- fallback -----
-  return `I look at your balances, goals and spending. Try asking:\n• “Can I buy FC 27?”\n• “Can I go trampoline and Herfy?”\n• “Is a 60 SAR purchase worth it?”\n• “How am I doing this month?”\n\nRight now: ${money(t)} SAR total — 🍔 ${money(b.hangout)} · 🏦 ${money(b.savings)} · 🎮 ${money(b.ps)}.`;
-}
+        // Add allowance
+        window.addAllowance = function() {
+            const total = parseInt(document.getElementById('allowanceAmount').value);
+            const hangout = parseInt(document.getElementById('hangoutSlider').value);
+            const savings = parseInt(document.getElementById('savingsSlider').value);
+            const playstation = parseInt(document.getElementById('playstationSlider').value);
 
-function renderChat(){
-  const c = document.getElementById("chat");
-  if(!state.chat.length){
-    state.chat = [{ who:"ai", text:"👋 Hey Asser! Ask me before you spend — I'll check your balances, goals and history first." }];
-  }
-  c.innerHTML = state.chat.map(m => `<div class="msg ${m.who==="me"?"me":"ai"}">${escapeHTML(m.text)}</div>`).join("");
-  c.scrollTop = c.scrollHeight;
-}
-function ask(){
-  const el = document.getElementById("askInput");
-  const q = el.value.trim();
-  if(!q) return;
-  el.value = "";
-  state.chat.push({ who:"me", text:q });
-  renderChat();
-  setTimeout(() => { state.chat.push({ who:"ai", text:advise(q) }); saveCache(); renderChat(); }, 260);
-}
-function quick(q){ go("ai"); document.getElementById("askInput").value = q; ask(); }
-function clearChat(){ state.chat = []; renderChat(); saveCache(); }
+            if (isNaN(total) || total <= 0) {
+                showNotification('Please enter a valid amount', true);
+                return;
+            }
 
-/* =========================================================================
-   10. DATA TOOLS
-   ========================================================================= */
-function exportData(){
-  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "masareef-backup.json";
-  a.click(); URL.revokeObjectURL(a.href);
-}
-function resetAll(){
-  if(!confirm("Delete ALL balances, history and goals? This cannot be undone.")) return;
-  if(!confirm("Are you really sure?")) return;
-  state.balances = { hangout:0, savings:0, ps:0 };
-  state.history = {}; state.goals = {}; state.nextPlan = null; state.monthType = "unsure";
-  push(); render(); toast("Everything reset");
-}
+            if (hangout + savings + playstation !== total) {
+                showNotification('Split must equal total amount', true);
+                return;
+            }
 
-/* =========================================================================
-   11. BOOT
-   ========================================================================= */
-loadCache();
-render();
-initFirebase();
-// Prevent the iOS double-tap zoom that breaks app-like feel
-document.addEventListener("dblclick", e => e.preventDefault(), {passive:false});
-</script>
+            balances.hangout += hangout;
+            balances.savings += savings;
+            balances.playstation += playstation;
+
+            set(ref(database, 'balances'), balances);
+            addToHistory('Allowance', total, null, `Split: ${hangout}/${savings}/${playstation}`);
+            checkHangoutLimit();
+            closeModal('allowanceModal');
+            showNotification('Allowance added successfully!');
+        };
+
+        // Add money
+        window.addMoney = function() {
+            const bucket = document.getElementById('addMoneyBucket').value;
+            const amount = parseInt(document.getElementById('addMoneyAmount').value);
+
+            if (isNaN(amount) || amount <= 0) {
+                showNotification('Please enter a valid amount', true);
+                return;
+            }
+
+            balances[bucket] += amount;
+            set(ref(database, 'balances'), balances);
+            addToHistory('Add Money', amount, bucket);
+            checkHangoutLimit();
+            closeModal('addMoneyModal');
+            showNotification(`Added ${amount} SAR to ${bucket}`);
+        };
+
+        // Transfer money
+        window.transferMoney = function() {
+            const from = document.getElementById('transferFrom').value;
+            const to = document.getElementById('transferTo').value;
+            const amount = parseInt(document.getElementById('transferAmount').value);
+
+            if (isNaN(amount) || amount <= 0) {
+                showNotification('Please enter a valid amount', true);
+                return;
+            }
+
+            if (from === to) {
+                showNotification('Cannot transfer to same bucket', true);
+                return;
+            }
+
+            if (balances[from] < amount) {
+                showNotification(`Insufficient funds in ${from}`, true);
+                return;
+            }
+
+            balances[from] -= amount;
+            balances[to] += amount;
+            set(ref(database, 'balances'), balances);
+            addToHistory('Transfer', -amount, from, `Transferred to ${to}`);
+            checkHangoutLimit();
+            closeModal('transferModal');
+            showNotification(`Transferred ${amount} SAR from ${from} to ${to}`);
+        };
+
+        // Add purchase
+        window.addPurchase = function() {
+            const name = document.getElementById('purchaseName').value;
+            const cost = parseInt(document.getElementById('purchaseCost').value);
+            const category = document.getElementById('purchaseCategory').value;
+
+            if (!name || isNaN(cost) || cost <= 0) {
+                showNotification('Please fill in all fields', true);
+                return;
+            }
+
+            if (balances[category] < cost) {
+                showNotification(`Insufficient funds in ${category}`, true);
+                return;
+            }
+
+            balances[category] -= cost;
+            set(ref(database, 'balances'), balances);
+            addToHistory('Purchase', -cost, category, name);
+            closeModal('purchaseModal');
+            showNotification(`Purchase "${name}" recorded`);
+        };
+
+        // Edit money
+        window.editMoney = function() {
+            const hangout = parseInt(document.getElementById('editHangout').value);
+            const savings = parseInt(document.getElementById('editSavings').value);
+            const playstation = parseInt(document.getElementById('editPlaystation').value);
+
+            if (isNaN(hangout) || isNaN(savings) || isNaN(playstation) ||
+                hangout < 0 || savings < 0 || playstation < 0) {
+                showNotification('Please enter valid amounts', true);
+                return;
+            }
+
+            const oldHangout = balances.hangout;
+            const oldSavings = balances.savings;
+            const oldPlaystation = balances.playstation;
+
+            balances.hangout = hangout;
+            balances.savings = savings;
+            balances.playstation = playstation;
+
+            set(ref(database, 'balances'), balances);
+            addToHistory('Manual Edit', 0, null, `Changed balances: ${oldHangout}→${hangout}, ${oldSavings}→${savings}, ${oldPlaystation}→${playstation}`);
+            checkHangoutLimit();
+            closeModal('editModal');
+            showNotification('Balances updated');
+        };
+
+        // Add goal
+        window.addGoal = function() {
+            const name = document.getElementById('goalName').value;
+            const amount = parseInt(document.getElementById('goalAmount').value);
+
+            if (!name || isNaN(amount) || amount <= 0) {
+                showNotification('Please fill in all fields', true);
+                return;
+            }
+
+            const goalsRef = ref(database, 'goals');
+            push(goalsRef, { name, amount });
+            
+            document.getElementById('goalName').value = '';
+            document.getElementById('goalAmount').value = '';
+            showNotification('Goal added!');
+        };
+
+        // Tab switching
+        window.switchTab = function(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('activitySection').style.display = tab === 'activity' ? 'block' : 'none';
+            document.getElementById('chartsSection').style.display = tab === 'charts' ? 'block' : 'none';
+            document.getElementById('aiSection').style.display = tab === 'ai' ? 'block' : 'none';
+        };
+
+        // AI Advisor
+        window.askAI = function(question) {
+            document.getElementById('chatInput').value = question;
+            sendChatMessage();
+        };
+
+        window.sendChatMessage = function() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML += `<div class="chat-message user">${message}</div>`;
+            input.value = '';
+
+            const response = getAIResponse(message);
+            setTimeout(() => {
+                chatMessages.innerHTML += `<div class="chat-message ai">${response}</div>`;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 500);
+        };
+
+        function getAIResponse(question) {
+            const q = question.toLowerCase();
+            const total = balances.hangout + balances.savings + balances.playstation;
+            
+            // Rule-based AI responses
+            if (q.includes('worth it') || q.includes('should i buy')) {
+                if (balances.hangout > 50) {
+                    return `You have ${balances.hangout} SAR in Hangout. As long as it's not more than 30-40 SAR, you should be fine. Remember to save some for later!`;
+                } else {
+                    return `You only have ${balances.hangout} SAR in Hangout. I'd recommend saving more before making non-essential purchases. Your total balance is ${total} SAR.`;
+                }
+            }
+            
+            if (q.includes('can i buy')) {
+                if (balances.hangout > 30) {
+                    return `Yes! You have ${balances.hangout} SAR in Hangout. Just make sure it's something you really need or will enjoy a lot.`;
+                } else {
+                    return `You might want to wait. You only have ${balances.hangout} SAR in Hangout. Consider transferring from Savings if it's important.`;
+                }
+            }
+            
+            if (q.includes('savings')) {
+                return `Your Savings has ${balances.savings} SAR. It's generally better to spend from Hangout first, but if this is really important to you, you could use Savings. Just remember your goals!`;
+            }
+            
+            if (q.includes('trampoline') || q.includes('herfy')) {
+                const estimatedCost = 80; // Trampoline + Herfy estimate
+                if (balances.hangout >= estimatedCost) {
+                    return `Yes! You have ${balances.hangout} SAR in Hangout, which should cover trampoline and Herfy (around ${estimatedCost} SAR). Have fun!`;
+                } else {
+                    const needed = estimatedCost - balances.hangout;
+                    return `You're close! You have ${balances.hangout} SAR but might need around ${estimatedCost} SAR. You could transfer ${needed} SAR from Savings if you really want to go.`;
+                }
+            }
+            
+            if (q.includes('fc 27') || q.includes('fc27')) {
+                const fcCost = 250; // Estimated cost
+                const timeToSave = Math.ceil((fcCost - balances.savings) / 45); // Assuming 45 SAR savings per allowance
+                if (balances.savings >= fcCost) {
+                    return `You can afford FC 27 now! You have ${balances.savings} SAR in Savings. Go for it! 🎮`;
+                } else {
+                    return `You need ${fcCost - balances.savings} more SAR. At your current savings rate (45 SAR per allowance), it should take about ${timeToSave} more allowances. Keep saving! 💪`;
+                }
+            }
+            
+            if (q.includes('how much') || q.includes('balance')) {
+                return `Here's your current situation:\n• Hangout: ${balances.hangout} SAR\n• Savings: ${balances.savings} SAR\n• PlayStation: ${balances.playstation} SAR\n• Total: ${total} SAR`;
+            }
+            
+            if (q.includes('save') || q.includes('saving')) {
+                return `Great question! You're saving ${balances.savings} SAR total. Keep up the good work! Remember: the more you save, the closer you get to your goals like FC 27.`;
+            }
+            
+            // Default response
+            return `Based on your current balances:\n• Hangout: ${balances.hangout} SAR\n• Savings: ${balances.savings} SAR\n• PlayStation: ${balances.playstation} SAR\n\nI'd recommend keeping your Hangout under 110 SAR and focusing on building your Savings for bigger goals. Is there something specific you're planning to buy?`;
+        }
+
+        // Notification
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = isError ? 'notification error show' : 'notification show';
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Handle Enter key in chat
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+
+        // Initialize app
+        init();
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
