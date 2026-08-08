@@ -2476,15 +2476,25 @@
             if (userPreferences.useFixedAmounts) {
                 hangout = userPreferences.fixedHangoutAmount;
                 savings = userPreferences.fixedSavingsAmount;
-                playstation = total - hangout - savings; // Remaining goes to savings
-                savings = playstation + savings; // Combine remaining with fixed savings
+                if (userPreferences.enablePlaystation) {
+                    playstation = total - hangout - savings;
+                } else {
+                    // If PlayStation is disabled, remaining goes to savings
+                    savings = total - hangout;
+                    playstation = 0;
+                }
             } else {
                 // Calculate splits based on user preferences
                 hangout = Math.round(total * (userPreferences.hangoutPercent / 100));
                 savings = Math.round(total * (userPreferences.savingsPercent / 100));
-                playstation = userPreferences.enablePlaystation ? 
-                    Math.round(total * (userPreferences.playstationPercent / 100)) : 
-                    total - hangout - savings;
+                
+                if (userPreferences.enablePlaystation) {
+                    playstation = Math.round(total * (userPreferences.playstationPercent / 100));
+                } else {
+                    // If PlayStation is disabled, remaining goes to savings
+                    playstation = 0;
+                    savings = total - hangout;
+                }
             }
             
             // Update sliders
@@ -2530,13 +2540,18 @@
                 return;
             }
 
-            // Use the actual slider values (user can adjust if they want different split)
+            // Use the actual slider values, but skip PlayStation if disabled
             balances.hangout += hangout;
             balances.savings += savings;
-            balances.playstation += playstation;
+            if (userPreferences.enablePlaystation) {
+                balances.playstation += playstation;
+            } else {
+                // If PlayStation is disabled, add that amount to savings instead
+                balances.savings += playstation;
+            }
 
             set(ref(database, `users/${currentUser.username}/balances`), balances);
-            addToHistory('Allowance', total, null, `Split: ${hangout}/${savings}/${playstation}`);
+            addToHistory('Allowance', total, null, `Split: ${hangout}/${savings}${userPreferences.enablePlaystation ? '/' + playstation : ''}`);
             checkHangoutLimit();
             closeModal('allowanceModal');
             showNotification('Allowance added successfully!');
