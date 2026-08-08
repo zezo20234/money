@@ -922,7 +922,7 @@
                     <div class="card-title">Savings</div>
                     <div class="card-amount" id="savingsBalance">0 SAR</div>
                 </div>
-                <div class="card-limit">Flexible savings</div>
+                <div class="card-limit" id="savingsLimit">Flexible savings</div>
             </div>
 
             <div class="balance-card playstation">
@@ -1475,7 +1475,8 @@
             fixedHangoutAmount: 35,
             fixedSavingsAmount: 25,
             weeklyHangoutBudget: 4, // Number of hangout days per week
-            hangoutBudgetPerDay: 15 // Target spending per hangout
+            hangoutBudgetPerDay: 15, // Target spending per hangout
+            minimumSavings: 0 // Minimum savings requirement (0 for most users, 50 for Asser)
         };
         let balances = {
             hangout: 0,
@@ -1488,6 +1489,7 @@
         let goals = [];
         let spendingChart = null;
         let allowanceChart = null;
+        let balanceChart = null;
 
         // Initialize
         function init() {
@@ -1517,9 +1519,16 @@
             get(prefsRef).then((snapshot) => {
                 if (snapshot.exists()) {
                     userPreferences = snapshot.val();
+                    // Ensure minimumSavings is set (default to 0 if not present)
+                    if (userPreferences.minimumSavings === undefined) {
+                        userPreferences.minimumSavings = 0;
+                    }
                     updateUIForPreferences();
                 } else {
                     // Use default preferences
+                    if (userPreferences.minimumSavings === undefined) {
+                        userPreferences.minimumSavings = 0;
+                    }
                     updateUIForPreferences();
                 }
             });
@@ -1577,6 +1586,19 @@
                 hangoutLimit.innerHTML = `<span class="limit-warning">⚠️ Over limit! ${balances.hangout - userPreferences.hangoutLimit} SAR should move to Savings</span>`;
             } else {
                 hangoutLimit.textContent = `Limit: ${userPreferences.hangoutLimit} SAR (${userPreferences.hangoutLimit - balances.hangout} SAR remaining)`;
+            }
+
+            // Check Savings minimum for Asser
+            const savingsLimit = document.getElementById('savingsLimit');
+            const minimumSavings = userPreferences.minimumSavings || 0;
+            if (minimumSavings > 0) {
+                if (balances.savings < minimumSavings) {
+                    savingsLimit.innerHTML = `<span class="limit-warning">⚠️ Below minimum! ${minimumSavings - balances.savings} SAR below required ${minimumSavings} SAR</span>`;
+                } else {
+                    savingsLimit.textContent = `Min: ${minimumSavings} SAR (${balances.savings - minimumSavings} SAR available)`;
+                }
+            } else {
+                savingsLimit.textContent = 'Flexible savings';
             }
 
             // Update edit modal with current values
@@ -2039,7 +2061,17 @@
                         
                         // Special handling for Asser
                         if (username.toLowerCase() === 'asser') {
-                            applyAsserSettings();
+                            // Set Asser's default preferences immediately
+                            userPreferences = {
+                                hangoutLimit: 60,
+                                enablePlaystation: false,
+                                useFixedAmounts: true,
+                                fixedHangoutAmount: 35,
+                                fixedSavingsAmount: 25,
+                                weeklyHangoutBudget: 4,
+                                hangoutBudgetPerDay: 15,
+                                minimumSavings: 50
+                            };
                         }
                         
                         loadUserData();
@@ -2110,7 +2142,20 @@
                         
                         // Special setup for Asser
                         if (username.toLowerCase() === 'asser') {
-                            applyAsserSettings();
+                            // Set Asser's default preferences immediately
+                            userPreferences = {
+                                hangoutLimit: 60,
+                                enablePlaystation: false,
+                                useFixedAmounts: true,
+                                fixedHangoutAmount: 35,
+                                fixedSavingsAmount: 25,
+                                weeklyHangoutBudget: 4,
+                                hangoutBudgetPerDay: 15,
+                                minimumSavings: 50
+                            };
+                            // Save Asser's preferences to database
+                            const prefsRef = ref(database, `users/Asser/preferences`);
+                            set(prefsRef, userPreferences);
                             loadUserData();
                             showNotification('Welcome Asser! Your account is configured for smart weekly budgeting.');
                         } else {
@@ -2135,7 +2180,8 @@
                 enablePlaystation: true,
                 hangoutPercent: 50,
                 savingsPercent: 37.5,
-                playstationPercent: 12.5
+                playstationPercent: 12.5,
+                minimumSavings: 0
             };
             document.getElementById('authSection').classList.add('active');
             document.getElementById('appContent').classList.remove('active');
@@ -2167,7 +2213,8 @@
                 hangoutLimit,
                 enablePlaystation,
                 weeklyHangoutBudget: 4,
-                hangoutBudgetPerDay: 15
+                hangoutBudgetPerDay: 15,
+                minimumSavings: 0 // Default to 0 for regular users
             };
 
             // Handle fixed amounts vs percentages
@@ -2232,23 +2279,6 @@
             document.getElementById('settingsModal').classList.add('active');
         };
 
-        // Apply Asser's custom settings
-        function applyAsserSettings() {
-            userPreferences = {
-                hangoutLimit: 60,
-                enablePlaystation: false,
-                useFixedAmounts: true, // Use fixed SAR amounts instead of percentages
-                fixedHangoutAmount: 35,
-                fixedSavingsAmount: 25,
-                weeklyHangoutBudget: 4,
-                hangoutBudgetPerDay: 15
-            };
-            
-            // Save Asser's preferences
-            const prefsRef = ref(database, `users/Asser/preferences`);
-            set(prefsRef, userPreferences);
-        }
-
         window.saveSettings = function() {
             const hangoutLimit = parseInt(document.getElementById('settingsHangoutLimit').value) || 140;
             const enablePlaystation = document.getElementById('settingsEnablePlaystation').value === 'true';
@@ -2257,7 +2287,8 @@
                 hangoutLimit,
                 enablePlaystation,
                 weeklyHangoutBudget: 4,
-                hangoutBudgetPerDay: 15
+                hangoutBudgetPerDay: 15,
+                minimumSavings: userPreferences.minimumSavings || 0 // Preserve existing minimumSavings
             };
 
             // Handle fixed amounts vs percentages
@@ -2345,10 +2376,10 @@
             if (currentUser && currentUser.username.toLowerCase() === 'asser') {
                 quickQuestionsDiv.innerHTML = `
                     <div class="quick-question" onclick="askAI('Can I buy this?')">Can I buy this?</div>
-                    <div class="quick-question" onclick="askAI('How much do I have for this week?')">How much for this week?</div>
+                    <div class="quick-question" onclick="askAI('How much for this month?')">How much for this month?</div>
                     <div class="quick-question" onclick="askAI('Will I run out of money?')">Will I run out?</div>
-                    <div class="quick-question" onclick="askAI('What\'s my weekly budget?')">Weekly budget?</div>
-                    <div class="quick-question" onclick="askAI('Am I spending too much?')">Am I spending too much?</div>
+                    <div class="quick-question" onclick="askAI('What\'s my daily budget?')">Daily budget?</div>
+                    <div class="quick-question" onclick="askAI('Am I spending too fast?')">Am I spending too fast?</div>
                 `;
             } else {
                 quickQuestionsDiv.innerHTML = `
@@ -2606,6 +2637,25 @@
                 return;
             }
 
+            // Minimum savings check for Asser when transferring from Savings
+            if (currentUser.username.toLowerCase() === 'asser' && from === 'savings') {
+                const minimumSavings = userPreferences.minimumSavings || 50;
+                const remainingAfterTransfer = balances.savings - amount;
+                
+                if (remainingAfterTransfer < minimumSavings) {
+                    const allowedAmount = balances.savings - minimumSavings;
+                    if (allowedAmount <= 0) {
+                        showNotification(`⚠️ Cannot transfer from Savings! You must keep at least ${minimumSavings} SAR in Savings. Your current balance is ${balances.savings} SAR.`, true);
+                        return;
+                    } else {
+                        const confirmation = confirm(`⚠️ Minimum Savings Warning: This transfer will bring your Savings below ${minimumSavings} SAR.\n\n• Current Savings: ${balances.savings} SAR\n• Transfer amount: ${amount} SAR\n• Remaining: ${remainingAfterTransfer} SAR\n• Minimum required: ${minimumSavings} SAR\n\nYou can only transfer up to ${allowedAmount} SAR from Savings. Continue anyway?`);
+                        if (!confirmation) {
+                            return;
+                        }
+                    }
+                }
+            }
+
             balances[from] -= amount;
             balances[to] += amount;
             set(ref(database, `users/${currentUser.username}/balances`), balances);
@@ -2636,18 +2686,41 @@
                 return;
             }
 
-            // Smart warning for Asser's hangout purchases
-            if (currentUser.username.toLowerCase() === 'asser' && category === 'hangout') {
-                const weeklyBudget = userPreferences.weeklyHangoutBudget * userPreferences.hangoutBudgetPerDay;
-                const remainingThisWeek = weeklyBudget - getWeeklySpending();
+            // Minimum savings check for Asser
+            if (currentUser.username.toLowerCase() === 'asser' && category === 'savings') {
+                const minimumSavings = userPreferences.minimumSavings || 50;
+                const remainingAfterPurchase = balances.savings - cost;
                 
-                if (cost > remainingThisWeek) {
-                    const confirmation = confirm(`⚠️ Smart Budget Warning: This costs ${cost} SAR but you only have ${remainingThisWeek} SAR left in your weekly budget. This might leave you without money for your remaining hangouts this week. Continue anyway?`);
+                if (remainingAfterPurchase < minimumSavings) {
+                    const allowedAmount = balances.savings - minimumSavings;
+                    if (allowedAmount <= 0) {
+                        showNotification(`⚠️ Cannot spend from Savings! You must keep at least ${minimumSavings} SAR in Savings. Your current balance is ${balances.savings} SAR.`, true);
+                        return;
+                    } else {
+                        const confirmation = confirm(`⚠️ Minimum Savings Warning: This purchase will bring your Savings below ${minimumSavings} SAR.\n\n• Current Savings: ${balances.savings} SAR\n• Purchase cost: ${cost} SAR\n• Remaining: ${remainingAfterPurchase} SAR\n• Minimum required: ${minimumSavings} SAR\n\nYou can only spend up to ${allowedAmount} SAR from Savings. Continue anyway?`);
+                        if (!confirmation) {
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Smart warning for Asser's hangout purchases with monthly budgeting
+            if (currentUser.username.toLowerCase() === 'asser' && category === 'hangout') {
+                const monthlyAnalysis = analyzeMonthlySpending();
+                
+                if (monthlyAnalysis.warningLevel === 'critical') {
+                    const confirmation = confirm(`⚠️ CRITICAL WARNING: ${monthlyAnalysis.message}\n\n${monthlyAnalysis.suggestion}\n\nContinue anyway? You still have enough money, but this will make it very hard to last the month.`);
                     if (!confirmation) {
                         return;
                     }
-                } else if (cost > userPreferences.hangoutBudgetPerDay * 1.5) {
-                    const confirmation = confirm(`💡 Budget Tip: This costs ${cost} SAR which is higher than your typical ${userPreferences.hangoutBudgetPerDay} SAR per hangout. Consider if this is worth it. Continue?`);
+                } else if (monthlyAnalysis.warningLevel === 'high') {
+                    const confirmation = confirm(`⚠️ Spending Warning: ${monthlyAnalysis.message}\n\n${monthlyAnalysis.suggestion}\n\nContinue anyway?`);
+                    if (!confirmation) {
+                        return;
+                    }
+                } else if (monthlyAnalysis.warningLevel === 'medium') {
+                    const confirmation = confirm(`💡 Budget Tip: ${monthlyAnalysis.message}\n\n${monthlyAnalysis.suggestion}\n\nContinue?`);
                     if (!confirmation) {
                         return;
                     }
@@ -2810,47 +2883,59 @@
             return `Based on your current balances:\n• Hangout: ${balances.hangout} SAR\n• Savings: ${balances.savings} SAR\n• PlayStation: ${balances.playstation} SAR\n\nI'd recommend keeping your Hangout under ${userPreferences.hangoutLimit} SAR and focusing on building your Savings for bigger goals. Is there something specific you're planning to buy?`;
         }
 
-        // Special AI advisor for Asser with weekly budgeting logic
+        // Special AI advisor for Asser with monthly budgeting logic
         function getAsserAIResponse(question, total) {
+            const monthlyAnalysis = analyzeMonthlySpending();
             const weeklyBudget = userPreferences.weeklyHangoutBudget * userPreferences.hangoutBudgetPerDay; // 4 * 15 = 60 SAR per week
             const remainingThisWeek = weeklyBudget - getWeeklySpending();
-            const hangoutRemaining = userPreferences.hangoutLimit - balances.hangout;
             
             if (question.includes('can i buy') || question.includes('should i buy') || question.includes('worth it')) {
                 // Try to extract cost from question
                 const costMatch = question.match(/(\d+)/);
                 const estimatedCost = costMatch ? parseInt(costMatch[0]) : 15; // Default to 15 SAR if no number found
                 
-                if (estimatedCost <= remainingThisWeek) {
-                    return `Yes! This costs ${estimatedCost} SAR and you have ${remainingThisWeek} SAR left in your weekly hangout budget. You'll still have money for your other ${userPreferences.weeklyHangoutBudget - 1} hangout days this week! 💪`;
-                } else if (estimatedCost <= balances.hangout) {
-                    return `You have enough money (${balances.hangout} SAR), but this costs ${estimatedCost} SAR which is more than your weekly budget (${remainingThisWeek} SAR remaining). I'd suggest waiting until next allowance or transferring from Savings if it's really important.`;
+                if (estimatedCost <= balances.hangout) {
+                    const dailyRate = getMonthlySpending() / new Date().getDate();
+                    const sustainableRate = balances.hangout / monthlyAnalysis.daysRemaining;
+                    
+                    if (estimatedCost > sustainableRate) {
+                        return `You have ${balances.hangout} SAR so you can afford this ${estimatedCost} SAR purchase. ⚠️ But this is more than your sustainable daily rate of ${sustainableRate.toFixed(1)} SAR. You have ${monthlyAnalysis.daysRemaining} days left in the month. Consider if you really need this right now.`;
+                    } else {
+                        return `Yes! You have ${balances.hangout} SAR and this costs ${estimatedCost} SAR. At your current spending rate, you should be fine for the ${monthlyAnalysis.daysRemaining} days left this month. Just keep spending around ${sustainableRate.toFixed(1)} SAR per day! 💪`;
+                    }
                 } else {
-                    return `This costs ${estimatedCost} SAR but you only have ${balances.hangout} SAR in Hangout. I'd recommend saving up or transferring from Savings. Your weekly budget allows ${weeklyBudget} SAR for hangouts.`;
+                    return `This costs ${estimatedCost} SAR but you only have ${balances.hangout} SAR in Hangout. I'd recommend saving up or transferring from Savings if it's really important.`;
                 }
             }
             
+            if (question.includes('month') || question.includes('monthly')) {
+                return `📅 Monthly Analysis:\n• Current balance: ${balances.hangout} SAR\n• Days left this month: ${monthlyAnalysis.daysRemaining}\n• Your spending rate: ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day\n• Sustainable rate: ${monthlyAnalysis.sustainableDailyRate.toFixed(1)} SAR/day\n• To last the month, spend about ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day.`;
+            }
+            
             if (question.includes('week') || question.includes('weekly')) {
-                return `Your weekly hangout budget is ${weeklyBudget} SAR for ${userPreferences.weeklyHangoutBudget} hangout days (${userPreferences.hangoutBudgetPerDay} SAR per day). You have ${balances.hangout} SAR currently. Try to spend about ${userPreferences.hangoutBudgetPerDay} SAR each time to make it through the week!`;
+                return `Your weekly hangout budget is ${weeklyBudget} SAR for ${userPreferences.weeklyHangoutBudget} hangout days (${userPreferences.hangoutBudgetPerDay} SAR per day). You have ${balances.hangout} SAR currently. For the month, you have ${monthlyAnalysis.daysRemaining} days left, so try to spend about ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day.`;
             }
             
             if (question.includes('how much') || question.includes('balance')) {
-                return `Hey Asser! Here's your weekly budget breakdown:\n• Hangout: ${balances.hangout} SAR (Limit: ${userPreferences.hangoutLimit} SAR)\n• Savings: ${balances.savings} SAR\n• Weekly budget: ${weeklyBudget} SAR for ${userPreferences.weeklyHangoutBudget} hangout days\n• Remaining this week: ${remainingThisWeek} SAR`;
+                return `Hey Asser! Here's your budget breakdown:\n• Hangout: ${balances.hangout} SAR (Limit: ${userPreferences.hangoutLimit} SAR)\n• Savings: ${balances.savings} SAR\n• Days left this month: ${monthlyAnalysis.daysRemaining}\n• Daily budget: ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR\n• Your spending rate: ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day`;
             }
             
             if (question.includes('save') || question.includes('saving')) {
                 const savingsRate = userPreferences.useFixedAmounts ? 
                     userPreferences.fixedSavingsAmount : 
                     Math.round(userPreferences.savingsPercent / 100 * 120); // Assuming 120 SAR allowance
-                const savingsType = userPreferences.useFixedAmounts ? 'fixed' : userPreferences.savingsPercent + '%';
-                return `You're saving ${balances.savings} SAR! With your current setup (${savingsRate} SAR fixed savings), you add ${savingsRate} SAR to savings each allowance. Keep it up - you're building great habits! 💰`;
+                const minimumSavings = userPreferences.minimumSavings || 0;
+                const minimumInfo = minimumSavings > 0 ? `\n• Minimum required: ${minimumSavings} SAR (you can't spend below this)` : '';
+                return `You're saving ${balances.savings} SAR! With your current setup (${savingsRate} SAR fixed savings), you add ${savingsRate} SAR to savings each allowance. You're also spending at ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day which is ${monthlyAnalysis.dailyAverage <= monthlyAnalysis.sustainableDailyRate ? '✅ on track' : '⚠️ too fast'} for your monthly budget.${minimumInfo} Keep it up! 💰`;
             }
             
-            if (question.includes('broke') || question.includes('run out')) {
-                if (balances.hangout < userPreferences.hangoutBudgetPerDay) {
-                    return `⚠️ Warning: You only have ${balances.hangout} SAR left! That's less than your daily budget of ${userPreferences.hangoutBudgetPerDay} SAR. I'd recommend slowing down on hangouts this week or transferring from Savings.`;
+            if (question.includes('broke') || question.includes('run out') || question.includes('zero')) {
+                if (monthlyAnalysis.warningLevel === 'critical') {
+                    return `⚠️ CRITICAL: You're spending way too fast! At your current rate of ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day, you'll run out ${Math.ceil(monthlyAnalysis.daysRemaining - (balances.hangout / monthlyAnalysis.dailyAverage))} days before month end. You MUST slow down to ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day!`;
+                } else if (monthlyAnalysis.warningLevel === 'high') {
+                    return `⚠️ Warning: You're spending ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day but should be spending ${monthlyAnalysis.sustainableDailyRate.toFixed(1)} SAR/day. You have ${monthlyAnalysis.daysRemaining} days left. Slow down to avoid running out!`;
                 } else {
-                    return `You're doing okay! You have ${balances.hangout} SAR which should cover your remaining hangouts this week. Just stick to about ${userPreferences.hangoutBudgetPerDay} SAR per hangout and you'll be fine!`;
+                    return `You're doing okay! You have ${balances.hangout} SAR for ${monthlyAnalysis.daysRemaining} days. Your spending rate is ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day which is sustainable. Just keep it around ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day and you'll be fine!`;
                 }
             }
             
@@ -2858,11 +2943,17 @@
                 const nextHangout = userPreferences.useFixedAmounts ? 
                     userPreferences.fixedHangoutAmount : 
                     Math.round(120 * userPreferences.hangoutPercent / 100);
-                return `Your current setup (${userPreferences.useFixedAmounts ? nextHangout + ' SAR fixed' : userPreferences.hangoutPercent + '% Hangout'}) means you'll get ${nextHangout} SAR for hangouts next allowance. Combined with your current ${balances.hangout} SAR, you'll have ${balances.hangout + nextHangout} SAR for next week!`;
+                return `Your current setup (${userPreferences.useFixedAmounts ? nextHangout + ' SAR fixed' : userPreferences.hangoutPercent + '% Hangout'}) means you'll get ${nextHangout} SAR for hangouts next allowance. Combined with your current ${balances.hangout} SAR, you'll have ${balances.hangout + nextHangout} SAR. For the ${monthlyAnalysis.daysRemaining} days left, aim for ${Math.floor((balances.hangout + nextHangout) / monthlyAnalysis.daysRemaining)} SAR per day.`;
             }
             
-            // Default Asser response
-            return `Hey Asser! 👋 Your weekly hangout budget is ${weeklyBudget} SAR (${userPreferences.hangoutBudgetPerDay} SAR per hangout, ${userPreferences.weeklyHangoutBudget} times per week). You have ${balances.hangout} SAR currently in Hangout. Try to spend around ${userPreferences.hangoutBudgetPerDay} SAR each time to make it through until your next allowance. Your Savings is growing too - ${balances.savings} SAR! Keep up the great habits! 💪`;
+            if (question.includes('today') || question.includes('rate')) {
+                return `Today's spending analysis:\n• You've spent ${getMonthlySpending()} SAR this month\n• That's ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR per day\n• You should spend ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day\n• You have ${balances.hangout} SAR left for ${monthlyAnalysis.daysRemaining} days`;
+            }
+            
+            // Default Asser response with monthly focus
+            const minimumSavings = userPreferences.minimumSavings || 0;
+            const minimumInfo = minimumSavings > 0 ? ` You must keep at least ${minimumSavings} SAR in Savings.` : '';
+            return `Hey Asser! 👋 You have ${balances.hangout} SAR in Hangout for ${monthlyAnalysis.daysRemaining} days left this month. To make it through, try to spend about ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day. Your current spending rate is ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day (${monthlyAnalysis.dailyAverage <= monthlyAnalysis.sustainableDailyRate ? '✅ Good!' : '⚠️ Too fast!'}). Your Savings is at ${balances.savings} SAR${minimumInfo} Keep up the great habits! 💪`;
         }
 
         // Calculate how much has been spent on hangouts this week
@@ -2881,6 +2972,95 @@
             });
             
             return weeklySpending;
+        }
+
+        // Analyze monthly spending for Asser
+        function analyzeMonthlySpending() {
+            const now = new Date();
+            const currentDay = now.getDate();
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const daysPassed = currentDay;
+            const daysRemaining = daysInMonth - currentDay;
+            
+            // Calculate spending rate
+            const thisMonthSpending = getMonthlySpending();
+            const dailyAverage = thisMonthSpending / daysPassed;
+            const projectedMonthlySpending = dailyAverage * daysInMonth;
+            
+            // Calculate if he can sustain this rate
+            const currentBalance = balances.hangout;
+            const sustainableDailyRate = currentBalance / daysRemaining;
+            
+            // Get recent spending pattern (last 5 purchases)
+            const recentPurchases = history
+                .filter(item => item.type === 'Purchase' && item.category === 'hangout')
+                .slice(-5);
+            
+            const averageRecentPurchase = recentPurchases.length > 0 
+                ? recentPurchases.reduce((sum, item) => sum + Math.abs(item.amount), 0) / recentPurchases.length 
+                : 0;
+            
+            // Calculate what the next purchase would do
+            const nextPurchaseAmount = 5; // Assume 5 SAR as example purchase
+            const projectedDailyRateAfterPurchase = (thisMonthSpending + nextPurchaseAmount) / daysPassed;
+            
+            // Determine warning level
+            let warningLevel = 'none';
+            let message = '';
+            let suggestion = '';
+            
+            // Critical: Spending way too fast
+            if (projectedDailyRateAfterPurchase > sustainableDailyRate * 2) {
+                warningLevel = 'critical';
+                message = `You're spending ${(projectedDailyRateAfterPurchase).toFixed(1)} SAR/day but only have enough for ${sustainableDailyRate.toFixed(1)} SAR/day to last the month.`;
+                suggestion = `At this rate, you'll run out ${Math.ceil(daysInMonth - (currentBalance / projectedDailyRateAfterPurchase))} days before month end. Try to spend less than ${Math.floor(sustainableDailyRate)} SAR per day.`;
+            }
+            // High: Spending too fast
+            else if (projectedDailyRateAfterPurchase > sustainableDailyRate * 1.5) {
+                warningLevel = 'high';
+                message = `You're spending ${(projectedDailyRateAfterPurchase).toFixed(1)} SAR/day, which is faster than your sustainable rate of ${sustainableDailyRate.toFixed(1)} SAR/day.`;
+                suggestion = `You have ${daysRemaining} days left. Try to stick to ${Math.floor(sustainableDailyRate)} SAR per day to make it through the month.`;
+            }
+            // Medium: Recent purchases are large
+            else if (averageRecentPurchase > sustainableDailyRate * 1.3) {
+                warningLevel = 'medium';
+                message = `Your recent purchases average ${averageRecentPurchase.toFixed(1)} SAR, which is higher than ideal.`;
+                suggestion = `You have ${currentBalance} SAR for ${daysRemaining} days. Try to keep purchases under ${Math.floor(sustainableDailyRate)} SAR each.`;
+            }
+            // Low: Just a friendly reminder
+            else if (daysRemaining < 10 && currentBalance < sustainableDailyRate * 5) {
+                warningLevel = 'low';
+                message = `You have ${daysRemaining} days left with ${currentBalance} SAR in Hangout.`;
+                suggestion = `You should be okay if you spend about ${Math.floor(sustainableDailyRate)} SAR per day for the rest of the month.`;
+            }
+            
+            return {
+                warningLevel,
+                message,
+                suggestion,
+                dailyAverage,
+                sustainableDailyRate,
+                daysRemaining,
+                currentBalance
+            };
+        }
+
+        // Calculate monthly spending
+        function getMonthlySpending() {
+            const now = new Date();
+            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            
+            let monthlySpending = 0;
+            history.forEach(item => {
+                if (item.type === 'Purchase' && item.category === 'hangout') {
+                    const itemDate = new Date(item.date);
+                    if (itemDate >= firstDayOfMonth) {
+                        monthlySpending += Math.abs(item.amount);
+                    }
+                }
+            });
+            
+            return monthlySpending;
         }
 
         // Notification
