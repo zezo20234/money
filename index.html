@@ -1333,7 +1333,15 @@
 
         // Initialize
         function init() {
-            // Listen for auth state changes
+            // Temporarily skip authentication for immediate use
+            currentUser = { uid: 'temp-user', email: 'guest@local' };
+            document.getElementById('userEmail').textContent = 'Guest Mode';
+            document.getElementById('authSection').classList.remove('active');
+            document.getElementById('appContent').classList.add('active');
+            loadUserData();
+
+            // Authentication code (commented out for now)
+            /*
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     currentUser = user;
@@ -1347,6 +1355,7 @@
                     document.getElementById('appContent').classList.remove('active');
                 }
             });
+            */
         }
 
         // Load user data
@@ -1602,51 +1611,33 @@
 
         // Modal functions
         window.openAllowanceModal = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
+            // Authentication check temporarily disabled
             document.getElementById('allowanceModal').classList.add('active');
             autoCalculateSplit(); // Auto-calculate when modal opens
         };
 
         window.openAddMoneyModal = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
+            // Authentication check temporarily disabled
             document.getElementById('addMoneyModal').classList.add('active');
         };
 
         window.openTransferModal = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
+            // Authentication check temporarily disabled
             document.getElementById('transferModal').classList.add('active');
         };
 
         window.openPurchaseModal = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
+            // Authentication check temporarily disabled
             document.getElementById('purchaseModal').classList.add('active');
         };
 
         window.openEditModal = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
+            // Authentication check temporarily disabled
             document.getElementById('editModal').classList.add('active');
         };
 
         window.openGoalsModal = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
+            // Authentication check temporarily disabled
             document.getElementById('goalsModal').classList.add('active');
         };
 
@@ -1868,10 +1859,13 @@
 
         // Add allowance
         window.addAllowance = function() {
+            // Authentication check temporarily disabled
+            /*
             if (!currentUser) {
                 showNotification('Please login first', true);
                 return;
             }
+            */
 
             const total = parseInt(document.getElementById('allowanceAmount').value);
             const hangout = parseInt(document.getElementById('hangoutSlider').value);
@@ -1897,11 +1891,7 @@
 
         // Add money
         window.addMoney = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
-
+            // Authentication check temporarily disabled
             const bucket = document.getElementById('addMoneyBucket').value;
             const amount = parseInt(document.getElementById('addMoneyAmount').value);
 
@@ -1920,11 +1910,7 @@
 
         // Transfer money
         window.transferMoney = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
-
+            // Authentication check temporarily disabled
             const from = document.getElementById('transferFrom').value;
             const to = document.getElementById('transferTo').value;
             const amount = parseInt(document.getElementById('transferAmount').value);
@@ -1955,11 +1941,7 @@
 
         // Add purchase
         window.addPurchase = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
-
+            // Authentication check temporarily disabled
             const name = document.getElementById('purchaseName').value;
             const cost = parseInt(document.getElementById('purchaseCost').value);
             const category = document.getElementById('purchaseCategory').value;
@@ -1983,11 +1965,7 @@
 
         // Edit money
         window.editMoney = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
-
+            // Authentication check temporarily disabled
             const hangout = parseInt(document.getElementById('editHangout').value);
             const savings = parseInt(document.getElementById('editSavings').value);
             const playstation = parseInt(document.getElementById('editPlaystation').value);
@@ -2015,11 +1993,7 @@
 
         // Add goal
         window.addGoal = function() {
-            if (!currentUser) {
-                showNotification('Please login first', true);
-                return;
-            }
-
+            // Authentication check temporarily disabled
             const name = document.getElementById('goalName').value;
             const amount = parseInt(document.getElementById('goalAmount').value);
 
