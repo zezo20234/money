@@ -582,8 +582,12 @@
         }
 
         .chart-container {
-            height: 250px;
-            margin-bottom: 20px;
+            height: 280px;
+            margin-bottom: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .ai-chat {
@@ -892,7 +896,10 @@
         <div class="app-content" id="appContent">
             <div class="user-info">
                 <div class="user-email" id="userEmail">user@email.com</div>
-                <button class="logout-btn" onclick="logout()">Logout</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="logout-btn" onclick="openSettingsModal()" style="background: rgba(102, 126, 234, 0.2); border-color: rgba(102, 126, 234, 0.4); color: #667eea;">⚙️ Settings</button>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
             </div>
 
             <div class="header">
@@ -915,7 +922,7 @@
                     <div class="card-title">Savings</div>
                     <div class="card-amount" id="savingsBalance">0 SAR</div>
                 </div>
-                <div class="card-limit">Flexible savings</div>
+                <div class="card-limit" id="savingsLimit">Flexible savings</div>
             </div>
 
             <div class="balance-card playstation">
@@ -964,12 +971,20 @@
         </div>
 
         <div class="section" id="chartsSection" style="display: none;">
-            <div class="section-title">Spending Overview</div>
+            <div class="tabs" style="margin-bottom: 20px;">
+                <div class="tab active" onclick="switchChartTab('spending')">Spending</div>
+                <div class="tab" onclick="switchChartTab('allowance')">Allowance</div>
+                <div class="tab" onclick="switchChartTab('balance')">Balance Trend</div>
+            </div>
+            <div class="section-title" id="chartTitle">Spending Overview</div>
             <div class="chart-container">
                 <canvas id="spendingChart"></canvas>
             </div>
-            <div class="chart-container">
+            <div class="chart-container" id="allowanceChartContainer">
                 <canvas id="allowanceChart"></canvas>
+            </div>
+            <div class="chart-container" id="balanceChartContainer" style="display: none;">
+                <canvas id="balanceTrendChart"></canvas>
             </div>
         </div>
 
@@ -980,12 +995,12 @@
                     Hi! I'm your money advisor. Ask me anything about your finances!
                 </div>
             </div>
-            <div class="quick-questions">
+            <div class="quick-questions" id="quickQuestions">
                 <div class="quick-question" onclick="askAI('Is this worth it?')">Is this worth it?</div>
                 <div class="quick-question" onclick="askAI('Can I buy this?')">Can I buy this?</div>
-                <div class="quick-question" onclick="askAI('Should I spend from savings?')">Should I spend from savings?</div>
-                <div class="quick-question" onclick="askAI('Can I go trampoline and Herfy?')">Can I go trampoline and Herfy?</div>
-                <div class="quick-question" onclick="askAI('How long until I can afford FC 27?')">How long until I can afford FC 27?</div>
+                <div class="quick-question" onclick="askAI('How much do I have for this week?')">How much for this week?</div>
+                <div class="quick-question" onclick="askAI('Will I run out of money?')">Will I run out?</div>
+                <div class="quick-question" onclick="askAI('How long until next allowance?')">Until next allowance?</div>
             </div>
             <div class="chat-input-container" style="margin-top: 15px;">
                 <input type="text" class="chat-input" id="chatInput" placeholder="Ask me anything...">
@@ -1003,25 +1018,25 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Total Amount (SAR)</label>
-                <input type="number" class="form-input" id="allowanceAmount" placeholder="120" value="120" oninput="autoCalculateSplit()">
+                <input type="number" class="form-input" id="allowanceAmount" placeholder="120" value="120" onchange="autoCalculateSplit()">
             </div>
             <div class="slider-container">
                 <div class="slider-label">
-                    <span>Hangout (50%)</span>
+                    <span>Hangout (<span id="hangoutPercentLabel">50%</span>)</span>
                     <span id="hangoutSplit">60 SAR</span>
                 </div>
                 <input type="range" class="slider" id="hangoutSlider" min="0" max="120" value="60" oninput="updateAllowanceSplit()">
             </div>
             <div class="slider-container">
                 <div class="slider-label">
-                    <span>Savings (37.5%)</span>
+                    <span>Savings (<span id="savingsPercentLabel">37.5%</span>)</span>
                     <span id="savingsSplit">45 SAR</span>
                 </div>
                 <input type="range" class="slider" id="savingsSlider" min="0" max="120" value="45" oninput="updateAllowanceSplit()">
             </div>
-            <div class="slider-container">
+            <div class="slider-container" id="playstationSliderContainer">
                 <div class="slider-label">
-                    <span>PlayStation / Mobily (12.5%)</span>
+                    <span>PlayStation / Mobily (<span id="playstationPercentLabel">12.5%</span>)</span>
                     <span id="playstationSplit">15 SAR</span>
                 </div>
                 <input type="range" class="slider" id="playstationSlider" min="0" max="120" value="15" oninput="updateAllowanceSplit()">
@@ -1295,6 +1310,139 @@
         </div>
     </div>
 
+    <!-- Account Setup Modal -->
+    <div class="modal" id="setupModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Setup Your Account</div>
+                <button class="close-btn" onclick="closeModal('setupModal')">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px; color: rgba(255,255,255,0.7);">Customize your money manager settings:</p>
+            
+            <div class="form-group">
+                <label class="form-label">Hangout Limit (SAR)</label>
+                <input type="number" class="form-input" id="setupHangoutLimit" placeholder="140" value="140">
+                <small style="color: rgba(255,255,255,0.5);">Maximum amount before excess moves to Savings</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Enable PlayStation/Mobily Bucket</label>
+                <select class="form-select" id="setupEnablePlaystation">
+                    <option value="true">Yes, I need this bucket</option>
+                    <option value="false">No, I don't use this</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Allowance Type</label>
+                <select class="form-select" id="setupAllowanceType" onchange="toggleSetupAllowanceType()">
+                    <option value="percentage">Use Percentages</option>
+                    <option value="fixed">Use Fixed Amounts</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="setupPercentageSettings">
+                <label class="form-label">Default Allowance Split</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Hangout %</label>
+                        <input type="number" class="form-input" id="setupHangoutPercent" value="50" min="0" max="100">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Savings %</label>
+                        <input type="number" class="form-input" id="setupSavingsPercent" value="37.5" min="0" max="100">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">PlayStation %</label>
+                        <input type="number" class="form-input" id="setupPlaystationPercent" value="12.5" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group" id="setupFixedAmountSettings" style="display: none;">
+                <label class="form-label">Fixed Allowance Amounts (SAR)</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Hangout</label>
+                        <input type="number" class="form-input" id="setupFixedHangout" placeholder="35">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Savings</label>
+                        <input type="number" class="form-input" id="setupFixedSavings" placeholder="25">
+                    </div>
+                </div>
+                <small style="color: rgba(255,255,255,0.5);">Remaining amount goes to Savings</small>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('setupModal')">Skip for Now</button>
+                <button class="modal-btn confirm" onclick="completeSetup()">Save & Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="close-btn" onclick="closeModal('settingsModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Hangout Limit (SAR)</label>
+                <input type="number" class="form-input" id="settingsHangoutLimit" placeholder="140">
+                <small style="color: rgba(255,255,255,0.5);">Maximum amount before excess moves to Savings</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Enable PlayStation/Mobily Bucket</label>
+                <select class="form-select" id="settingsEnablePlaystation">
+                    <option value="true">Yes, I need this bucket</option>
+                    <option value="false">No, I don't use this</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="percentageSettings">
+                <label class="form-label">Default Allowance Split</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Hangout %</label>
+                        <input type="number" class="form-input" id="settingsHangoutPercent" min="0" max="100">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Savings %</label>
+                        <input type="number" class="form-input" id="settingsSavingsPercent" min="0" max="100">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">PlayStation %</label>
+                        <input type="number" class="form-input" id="settingsPlaystationPercent" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group" id="fixedAmountSettings" style="display: none;">
+                <label class="form-label">Fixed Allowance Amounts (SAR)</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Hangout</label>
+                        <input type="number" class="form-input" id="settingsFixedHangout" placeholder="35">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: rgba(255,255,255,0.6);">Savings</label>
+                        <input type="number" class="form-input" id="settingsFixedSavings" placeholder="25">
+                    </div>
+                </div>
+                <small style="color: rgba(255,255,255,0.5);">Remaining amount goes to Savings</small>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal('settingsModal')">Cancel</button>
+                <button class="modal-btn confirm" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
     <div class="notification" id="notification"></div>
 
     <script type="module">
@@ -1317,6 +1465,19 @@
 
         // Data structure
         let currentUser = null;
+        let userPreferences = {
+            hangoutLimit: 140,
+            enablePlaystation: true,
+            useFixedAmounts: false,
+            hangoutPercent: 50,
+            savingsPercent: 37.5,
+            playstationPercent: 12.5,
+            fixedHangoutAmount: 35,
+            fixedSavingsAmount: 25,
+            weeklyHangoutBudget: 4, // Number of hangout days per week
+            hangoutBudgetPerDay: 15, // Target spending per hangout
+            minimumSavings: 0 // Minimum savings requirement (0 for most users, 50 for Asser)
+        };
         let balances = {
             hangout: 0,
             savings: 0,
@@ -1328,6 +1489,7 @@
         let goals = [];
         let spendingChart = null;
         let allowanceChart = null;
+        let balanceChart = null;
 
         // Initialize
         function init() {
@@ -1351,6 +1513,26 @@
             if (!currentUser) return;
 
             const username = currentUser.username;
+            
+            // Load user preferences
+            const prefsRef = ref(database, `users/${username}/preferences`);
+            get(prefsRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    userPreferences = snapshot.val();
+                    // Ensure minimumSavings is set (default to 0 if not present)
+                    if (userPreferences.minimumSavings === undefined) {
+                        userPreferences.minimumSavings = 0;
+                    }
+                    updateUIForPreferences();
+                } else {
+                    // Use default preferences
+                    if (userPreferences.minimumSavings === undefined) {
+                        userPreferences.minimumSavings = 0;
+                    }
+                    updateUIForPreferences();
+                }
+            });
+
             const balancesRef = ref(database, `users/${username}/balances`);
             onValue(balancesRef, (snapshot) => {
                 if (snapshot.exists()) {
@@ -1400,10 +1582,23 @@
 
             // Check Hangout limit
             const hangoutLimit = document.getElementById('hangoutLimit');
-            if (balances.hangout > 140) {
-                hangoutLimit.innerHTML = `<span class="limit-warning">⚠️ Over limit! ${balances.hangout - 140} SAR should move to Savings</span>`;
+            if (balances.hangout > userPreferences.hangoutLimit) {
+                hangoutLimit.innerHTML = `<span class="limit-warning">⚠️ Over limit! ${balances.hangout - userPreferences.hangoutLimit} SAR should move to Savings</span>`;
             } else {
-                hangoutLimit.textContent = `Limit: 140 SAR (${140 - balances.hangout} SAR remaining)`;
+                hangoutLimit.textContent = `Limit: ${userPreferences.hangoutLimit} SAR (${userPreferences.hangoutLimit - balances.hangout} SAR remaining)`;
+            }
+
+            // Check Savings minimum for Asser
+            const savingsLimit = document.getElementById('savingsLimit');
+            const minimumSavings = userPreferences.minimumSavings || 0;
+            if (minimumSavings > 0) {
+                if (balances.savings < minimumSavings) {
+                    savingsLimit.innerHTML = `<span class="limit-warning">⚠️ Below minimum! ${minimumSavings - balances.savings} SAR below required ${minimumSavings} SAR</span>`;
+                } else {
+                    savingsLimit.textContent = `Min: ${minimumSavings} SAR (${balances.savings - minimumSavings} SAR available)`;
+                }
+            } else {
+                savingsLimit.textContent = 'Flexible savings';
             }
 
             // Update edit modal with current values
@@ -1476,74 +1671,220 @@
             };
 
             const allowanceOverTime = [];
+            const totalAllowance = [];
+            let cumulativeAllowance = 0;
 
             history.forEach(item => {
                 if (item.type === 'Purchase') {
                     spendingByCategory[item.category] += Math.abs(item.amount);
                 }
                 if (item.type === 'Allowance') {
+                    cumulativeAllowance += item.amount;
                     allowanceOverTime.push({
                         date: new Date(item.date).toLocaleDateString(),
-                        amount: item.amount
+                        amount: item.amount,
+                        cumulative: cumulativeAllowance
                     });
                 }
             });
 
-            // Spending Chart
+            // Spending Chart - Enhanced
             const spendingCtx = document.getElementById('spendingChart').getContext('2d');
             if (spendingChart) {
                 spendingChart.destroy();
             }
+            
+            const hasSpending = spendingByCategory.hangout > 0 || spendingByCategory.savings > 0 || spendingByCategory.playstation > 0;
+            const spendingData = hasSpending ? 
+                [spendingByCategory.hangout, spendingByCategory.savings, spendingByCategory.playstation] : 
+                [1, 1, 1]; // Placeholder if no spending
+            const spendingLabels = hasSpending ? 
+                ['Hangout', 'Savings', 'PlayStation'] : 
+                ['No spending yet', 'No spending yet', 'No spending yet'];
+
             spendingChart = new Chart(spendingCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Hangout', 'Savings', 'PlayStation'],
+                    labels: spendingLabels,
                     datasets: [{
-                        data: [spendingByCategory.hangout, spendingByCategory.savings, spendingByCategory.playstation],
+                        data: spendingData,
                         backgroundColor: [
-                            'rgba(102, 126, 234, 0.8)',
-                            'rgba(46, 213, 115, 0.8)',
-                            'rgba(255, 107, 107, 0.8)'
+                            'rgba(102, 126, 234, 0.9)',
+                            'rgba(46, 213, 115, 0.9)',
+                            'rgba(255, 107, 107, 0.9)'
                         ],
                         borderColor: [
                             'rgba(102, 126, 234, 1)',
                             'rgba(46, 213, 115, 1)',
                             'rgba(255, 107, 107, 1)'
                         ],
-                        borderWidth: 2
+                        borderWidth: 3,
+                        hoverOffset: 10
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '65%',
                     plugins: {
                         legend: {
                             position: 'bottom',
                             labels: {
                                 color: 'white',
-                                font: { size: 12 }
+                                font: { size: 13, weight: '600' },
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} SAR (${percentage}%)`;
+                                }
                             }
                         }
                     }
                 }
             });
 
-            // Allowance Chart
+            // Allowance Chart - Enhanced
             const allowanceCtx = document.getElementById('allowanceChart').getContext('2d');
             if (allowanceChart) {
                 allowanceChart.destroy();
             }
+
+            const recentAllowance = allowanceOverTime.slice(-8);
+            const allowanceLabels = recentAllowance.map(a => a.date);
+            const allowanceAmounts = recentAllowance.map(a => a.amount);
+            const cumulativeAmounts = recentAllowance.map(a => a.cumulative);
+
             allowanceChart = new Chart(allowanceCtx, {
+                type: 'bar',
+                data: {
+                    labels: allowanceLabels.length > 0 ? allowanceLabels : ['No data yet'],
+                    datasets: [
+                        {
+                            label: 'Allowance',
+                            data: allowanceAmounts.length > 0 ? allowanceAmounts : [0],
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            borderSkipped: false
+                        },
+                        {
+                            label: 'Total Saved',
+                            data: cumulativeAmounts.length > 0 ? cumulativeAmounts : [0],
+                            backgroundColor: 'rgba(46, 213, 115, 0.6)',
+                            borderColor: 'rgba(46, 213, 115, 1)',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            borderSkipped: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: 'white',
+                                font: { size: 12, weight: '600' },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            cornerRadius: 8
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { 
+                                color: 'rgba(255,255,255,0.7)',
+                                font: { size: 11 }
+                            },
+                            grid: { 
+                                color: 'rgba(255,255,255,0.1)',
+                                drawBorder: false
+                            }
+                        },
+                        y: {
+                            ticks: { 
+                                color: 'rgba(255,255,255,0.7)',
+                                font: { size: 11 }
+                            },
+                            grid: { 
+                                color: 'rgba(255,255,255,0.1)',
+                                drawBorder: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Balance Trend Chart
+            const balanceCtx = document.getElementById('balanceTrendChart').getContext('2d');
+            if (balanceChart) {
+                balanceChart.destroy();
+            }
+
+            // Get balance history from transactions
+            const balanceHistory = [];
+            let runningBalance = 0;
+            const reversedHistory = [...history].reverse(); // Get chronological order
+
+            reversedHistory.forEach(item => {
+                if (item.category) {
+                    runningBalance += item.amount;
+                } else if (item.type === 'Allowance') {
+                    runningBalance += item.amount;
+                }
+                balanceHistory.push({
+                    date: new Date(item.date).toLocaleDateString(),
+                    balance: runningBalance
+                });
+            });
+
+            // Add current balance
+            balanceHistory.push({
+                date: 'Today',
+                balance: balances.hangout + balances.savings + balances.playstation
+            });
+
+            balanceChart = new Chart(balanceCtx, {
                 type: 'line',
                 data: {
-                    labels: allowanceOverTime.slice(-6).map(a => a.date),
+                    labels: balanceHistory.slice(-10).map(b => b.date),
                     datasets: [{
-                        label: 'Allowance',
-                        data: allowanceOverTime.slice(-6).map(a => a.amount),
+                        label: 'Total Balance',
+                        data: balanceHistory.slice(-10).map(b => b.balance),
                         borderColor: 'rgba(102, 126, 234, 1)',
-                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
                         fill: true,
-                        tension: 0.4
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
                     }]
                 },
                 options: {
@@ -1551,23 +1892,61 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            labels: {
-                                color: 'white'
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return `Balance: ${context.parsed.y} SAR`;
+                                }
                             }
                         }
                     },
                     scales: {
                         x: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
+                            ticks: { 
+                                color: 'rgba(255,255,255,0.7)',
+                                font: { size: 11 }
+                            },
+                            grid: { 
+                                color: 'rgba(255,255,255,0.1)',
+                                drawBorder: false
+                            }
                         },
                         y: {
-                            ticks: { color: 'white' },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
+                            ticks: { 
+                                color: 'rgba(255,255,255,0.7)',
+                                font: { size: 11 }
+                            },
+                            grid: { 
+                                color: 'rgba(255,255,255,0.1)',
+                                drawBorder: false
+                            }
                         }
                     }
                 }
             });
+        }
+
+        // Chart tab switching
+        window.switchChartTab = function(tab) {
+            document.querySelectorAll('#chartsSection .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('allowanceChartContainer').style.display = tab === 'allowance' ? 'block' : 'none';
+            document.getElementById('balanceChartContainer').style.display = tab === 'balance' ? 'block' : 'none';
+            
+            const titles = {
+                'spending': 'Spending Overview',
+                'allowance': 'Allowance History',
+                'balance': 'Balance Trend'
+            };
+            document.getElementById('chartTitle').textContent = titles[tab];
         }
 
         // Add to history
@@ -1587,9 +1966,9 @@
         // Check and enforce Hangout limit
         function checkHangoutLimit() {
             if (!currentUser) return;
-            if (balances.hangout > 140) {
-                const excess = balances.hangout - 140;
-                balances.hangout = 140;
+            if (balances.hangout > userPreferences.hangoutLimit) {
+                const excess = balances.hangout - userPreferences.hangoutLimit;
+                balances.hangout = userPreferences.hangoutLimit;
                 balances.savings += excess;
                 set(ref(database, `users/${currentUser.username}/balances`), balances);
                 addToHistory('Auto Transfer', excess, 'hangout', `Moved ${excess} SAR from Hangout to Savings (limit exceeded)`);
@@ -1679,6 +2058,22 @@
                         document.getElementById('authSection').classList.remove('active');
                         document.getElementById('appContent').classList.add('active');
                         closeModal('loginModal');
+                        
+                        // Special handling for Asser
+                        if (username.toLowerCase() === 'asser') {
+                            // Set Asser's default preferences immediately
+                            userPreferences = {
+                                hangoutLimit: 60,
+                                enablePlaystation: false,
+                                useFixedAmounts: true,
+                                fixedHangoutAmount: 35,
+                                fixedSavingsAmount: 25,
+                                weeklyHangoutBudget: 4,
+                                hangoutBudgetPerDay: 15,
+                                minimumSavings: 50
+                            };
+                        }
+                        
                         loadUserData();
                         showNotification('Login successful!');
                         document.getElementById('loginUsername').value = '';
@@ -1733,11 +2128,40 @@
                         createdAt: new Date().toISOString()
                     }).then(() => {
                         closeModal('signupModal');
-                        showNotification('Account created successfully! Please login.');
+                        showNotification('Account created successfully!');
                         document.getElementById('signupUsername').value = '';
                         document.getElementById('signupPassword').value = '';
                         document.getElementById('signupConfirmPassword').value = '';
-                        openLoginModal();
+                        
+                        // Auto-login and show setup
+                        currentUser = { username: username };
+                        localStorage.setItem('moneyManagerUsername', username);
+                        document.getElementById('userEmail').textContent = username;
+                        document.getElementById('authSection').classList.remove('active');
+                        document.getElementById('appContent').classList.add('active');
+                        
+                        // Special setup for Asser
+                        if (username.toLowerCase() === 'asser') {
+                            // Set Asser's default preferences immediately
+                            userPreferences = {
+                                hangoutLimit: 60,
+                                enablePlaystation: false,
+                                useFixedAmounts: true,
+                                fixedHangoutAmount: 35,
+                                fixedSavingsAmount: 25,
+                                weeklyHangoutBudget: 4,
+                                hangoutBudgetPerDay: 15,
+                                minimumSavings: 50
+                            };
+                            // Save Asser's preferences to database
+                            const prefsRef = ref(database, `users/Asser/preferences`);
+                            set(prefsRef, userPreferences);
+                            loadUserData();
+                            showNotification('Welcome Asser! Your account is configured for smart weekly budgeting.');
+                        } else {
+                            // Show setup modal for other users
+                            openSetupModal();
+                        }
                     }).catch((error) => {
                         showNotification('Signup failed: ' + error.message, true);
                     });
@@ -1751,10 +2175,222 @@
         window.logout = function() {
             localStorage.removeItem('moneyManagerUsername');
             currentUser = null;
+            userPreferences = {
+                hangoutLimit: 140,
+                enablePlaystation: true,
+                hangoutPercent: 50,
+                savingsPercent: 37.5,
+                playstationPercent: 12.5,
+                minimumSavings: 0
+            };
             document.getElementById('authSection').classList.add('active');
             document.getElementById('appContent').classList.remove('active');
             showNotification('Logged out successfully');
         };
+
+        // Setup modal functions
+        window.openSetupModal = function() {
+            document.getElementById('setupModal').classList.add('active');
+        };
+
+        window.toggleSetupAllowanceType = function() {
+            const type = document.getElementById('setupAllowanceType').value;
+            if (type === 'fixed') {
+                document.getElementById('setupPercentageSettings').style.display = 'none';
+                document.getElementById('setupFixedAmountSettings').style.display = 'block';
+            } else {
+                document.getElementById('setupPercentageSettings').style.display = 'block';
+                document.getElementById('setupFixedAmountSettings').style.display = 'none';
+            }
+        };
+
+        window.completeSetup = function() {
+            const hangoutLimit = parseInt(document.getElementById('setupHangoutLimit').value) || 140;
+            const enablePlaystation = document.getElementById('setupEnablePlaystation').value === 'true';
+            const allowanceType = document.getElementById('setupAllowanceType').value;
+            
+            let newPreferences = {
+                hangoutLimit,
+                enablePlaystation,
+                weeklyHangoutBudget: 4,
+                hangoutBudgetPerDay: 15,
+                minimumSavings: 0 // Default to 0 for regular users
+            };
+
+            // Handle fixed amounts vs percentages
+            if (allowanceType === 'fixed') {
+                const fixedHangout = parseInt(document.getElementById('setupFixedHangout').value) || 35;
+                const fixedSavings = parseInt(document.getElementById('setupFixedSavings').value) || 25;
+                
+                newPreferences.useFixedAmounts = true;
+                newPreferences.fixedHangoutAmount = fixedHangout;
+                newPreferences.fixedSavingsAmount = fixedSavings;
+            } else {
+                const hangoutPercent = parseFloat(document.getElementById('setupHangoutPercent').value) || 50;
+                const savingsPercent = parseFloat(document.getElementById('setupSavingsPercent').value) || 37.5;
+                const playstationPercent = parseFloat(document.getElementById('setupPlaystationPercent').value) || 12.5;
+
+                // Validate percentages
+                if (Math.abs(hangoutPercent + savingsPercent + playstationPercent - 100) > 0.1) {
+                    showNotification('Percentages must add up to 100%', true);
+                    return;
+                }
+
+                newPreferences.useFixedAmounts = false;
+                newPreferences.hangoutPercent = hangoutPercent;
+                newPreferences.savingsPercent = savingsPercent;
+                newPreferences.playstationPercent = playstationPercent;
+            }
+
+            userPreferences = newPreferences;
+
+            // Save preferences to database
+            const prefsRef = ref(database, `users/${currentUser.username}/preferences`);
+            set(prefsRef, userPreferences).then(() => {
+                closeModal('setupModal');
+                showNotification('Settings saved! Setting up your account...');
+                loadUserData();
+                updateUIForPreferences();
+            }).catch((error) => {
+                showNotification('Failed to save settings: ' + error.message, true);
+            });
+        };
+
+        // Settings modal functions
+        window.openSettingsModal = function() {
+            // Load current preferences
+            document.getElementById('settingsHangoutLimit').value = userPreferences.hangoutLimit;
+            document.getElementById('settingsEnablePlaystation').value = userPreferences.enablePlaystation.toString();
+            
+            // Show appropriate settings based on fixed amounts vs percentages
+            if (userPreferences.useFixedAmounts) {
+                document.getElementById('percentageSettings').style.display = 'none';
+                document.getElementById('fixedAmountSettings').style.display = 'block';
+                document.getElementById('settingsFixedHangout').value = userPreferences.fixedHangoutAmount;
+                document.getElementById('settingsFixedSavings').value = userPreferences.fixedSavingsAmount;
+            } else {
+                document.getElementById('percentageSettings').style.display = 'block';
+                document.getElementById('fixedAmountSettings').style.display = 'none';
+                document.getElementById('settingsHangoutPercent').value = userPreferences.hangoutPercent;
+                document.getElementById('settingsSavingsPercent').value = userPreferences.savingsPercent;
+                document.getElementById('settingsPlaystationPercent').value = userPreferences.playstationPercent;
+            }
+            
+            document.getElementById('settingsModal').classList.add('active');
+        };
+
+        window.saveSettings = function() {
+            const hangoutLimit = parseInt(document.getElementById('settingsHangoutLimit').value) || 140;
+            const enablePlaystation = document.getElementById('settingsEnablePlaystation').value === 'true';
+            
+            let newPreferences = {
+                hangoutLimit,
+                enablePlaystation,
+                weeklyHangoutBudget: 4,
+                hangoutBudgetPerDay: 15,
+                minimumSavings: userPreferences.minimumSavings || 0 // Preserve existing minimumSavings
+            };
+
+            // Handle fixed amounts vs percentages
+            if (userPreferences.useFixedAmounts) {
+                const fixedHangout = parseInt(document.getElementById('settingsFixedHangout').value) || 35;
+                const fixedSavings = parseInt(document.getElementById('settingsFixedSavings').value) || 25;
+                
+                newPreferences.useFixedAmounts = true;
+                newPreferences.fixedHangoutAmount = fixedHangout;
+                newPreferences.fixedSavingsAmount = fixedSavings;
+            } else {
+                const hangoutPercent = parseFloat(document.getElementById('settingsHangoutPercent').value) || 50;
+                const savingsPercent = parseFloat(document.getElementById('settingsSavingsPercent').value) || 37.5;
+                const playstationPercent = parseFloat(document.getElementById('settingsPlaystationPercent').value) || 12.5;
+
+                // Validate percentages
+                if (Math.abs(hangoutPercent + savingsPercent + playstationPercent - 100) > 0.1) {
+                    showNotification('Percentages must add up to 100%', true);
+                    return;
+                }
+
+                newPreferences.useFixedAmounts = false;
+                newPreferences.hangoutPercent = hangoutPercent;
+                newPreferences.savingsPercent = savingsPercent;
+                newPreferences.playstationPercent = playstationPercent;
+            }
+
+            userPreferences = newPreferences;
+
+            // Save preferences to database
+            const prefsRef = ref(database, `users/${currentUser.username}/preferences`);
+            set(prefsRef, userPreferences).then(() => {
+                closeModal('settingsModal');
+                showNotification('Settings updated!');
+                updateUIForPreferences();
+            }).catch((error) => {
+                showNotification('Failed to save settings: ' + error.message, true);
+            });
+        };
+
+        // Update UI based on user preferences
+        function updateUIForPreferences() {
+            // Show/hide PlayStation card based on preference
+            const psCard = document.querySelector('.balance-card.playstation');
+            if (psCard) {
+                psCard.style.display = userPreferences.enablePlaystation ? 'block' : 'none';
+            }
+
+            // Show/hide PlayStation slider based on preference
+            const psSliderContainer = document.getElementById('playstationSliderContainer');
+            if (psSliderContainer) {
+                psSliderContainer.style.display = userPreferences.enablePlaystation ? 'block' : 'none';
+            }
+
+            // Update percentage labels
+            if (userPreferences.useFixedAmounts) {
+                document.getElementById('hangoutPercentLabel').textContent = `${userPreferences.fixedHangoutAmount} SAR`;
+                document.getElementById('savingsPercentLabel').textContent = `${userPreferences.fixedSavingsAmount} SAR`;
+                document.getElementById('playstationPercentLabel').textContent = 'Remaining';
+            } else {
+                document.getElementById('hangoutPercentLabel').textContent = `${userPreferences.hangoutPercent}%`;
+                document.getElementById('savingsPercentLabel').textContent = `${userPreferences.savingsPercent}%`;
+                document.getElementById('playstationPercentLabel').textContent = `${userPreferences.playstationPercent}%`;
+            }
+
+            // Update limit display
+            const limitElement = document.getElementById('hangoutLimit');
+            if (limitElement) {
+                limitElement.textContent = `Limit: ${userPreferences.hangoutLimit} SAR`;
+            }
+
+            // Update PlayStation options in dropdowns
+            const psOptions = document.querySelectorAll('option[value="playstation"]');
+            psOptions.forEach(option => {
+                option.style.display = userPreferences.enablePlaystation ? 'block' : 'none';
+            });
+
+            // Update quick questions based on user
+            updateQuickQuestions();
+        }
+
+        // Update quick questions based on user
+        function updateQuickQuestions() {
+            const quickQuestionsDiv = document.getElementById('quickQuestions');
+            if (currentUser && currentUser.username.toLowerCase() === 'asser') {
+                quickQuestionsDiv.innerHTML = `
+                    <div class="quick-question" onclick="askAI('Can I buy this?')">Can I buy this?</div>
+                    <div class="quick-question" onclick="askAI('How much for this month?')">How much for this month?</div>
+                    <div class="quick-question" onclick="askAI('Will I run out of money?')">Will I run out?</div>
+                    <div class="quick-question" onclick="askAI('What\'s my daily budget?')">Daily budget?</div>
+                    <div class="quick-question" onclick="askAI('Am I spending too fast?')">Am I spending too fast?</div>
+                `;
+            } else {
+                quickQuestionsDiv.innerHTML = `
+                    <div class="quick-question" onclick="askAI('Is this worth it?')">Is this worth it?</div>
+                    <div class="quick-question" onclick="askAI('Can I buy this?')">Can I buy this?</div>
+                    <div class="quick-question" onclick="askAI('Should I spend from savings?')">Should I spend from savings?</div>
+                    <div class="quick-question" onclick="askAI('Can I go trampoline and Herfy?')">Can I go trampoline and Herfy?</div>
+                    <div class="quick-question" onclick="askAI('How long until I can afford FC 27?')">How long until I can afford FC 27?</div>
+                `;
+            }
+        }
 
         window.closeModal = function(modalId) {
             document.getElementById(modalId).classList.remove('active');
@@ -1863,12 +2499,40 @@
 
         // Auto calculate allowance split based on total amount
         window.autoCalculateSplit = function() {
-            const total = parseInt(document.getElementById('allowanceAmount').value) || 120;
+            const inputElement = document.getElementById('allowanceAmount');
+            const total = parseInt(inputElement.value) || 120;
             
-            // Calculate splits based on percentages (50% Hangout, 37.5% Savings, 12.5% PlayStation)
-            const hangout = Math.round(total * 0.5);
-            const savings = Math.round(total * 0.375);
-            const playstation = total - hangout - savings; // Ensure exact total
+            // Ensure we have a valid total
+            if (isNaN(total) || total <= 0) {
+                return;
+            }
+            
+            let hangout, savings, playstation;
+            
+            // Use fixed amounts for Asser, percentages for others
+            if (userPreferences.useFixedAmounts) {
+                hangout = userPreferences.fixedHangoutAmount;
+                savings = userPreferences.fixedSavingsAmount;
+                if (userPreferences.enablePlaystation) {
+                    playstation = total - hangout - savings;
+                } else {
+                    // If PlayStation is disabled, remaining goes to savings (after fixed amounts)
+                    playstation = 0;
+                    savings = userPreferences.fixedSavingsAmount + (total - hangout - userPreferences.fixedSavingsAmount);
+                }
+            } else {
+                // Calculate splits based on user preferences
+                hangout = Math.round(total * (userPreferences.hangoutPercent / 100));
+                savings = Math.round(total * (userPreferences.savingsPercent / 100));
+                
+                if (userPreferences.enablePlaystation) {
+                    playstation = Math.round(total * (userPreferences.playstationPercent / 100));
+                } else {
+                    // If PlayStation is disabled, remaining goes to savings
+                    playstation = 0;
+                    savings = total - hangout;
+                }
+            }
             
             // Update sliders
             document.getElementById('hangoutSlider').value = hangout;
@@ -1913,13 +2577,18 @@
                 return;
             }
 
-            // Use the actual slider values (user can adjust if they want different split)
+            // Use the actual slider values, but skip PlayStation if disabled
             balances.hangout += hangout;
             balances.savings += savings;
-            balances.playstation += playstation;
+            if (userPreferences.enablePlaystation) {
+                balances.playstation += playstation;
+            } else {
+                // If PlayStation is disabled, add that amount to savings instead
+                balances.savings += playstation;
+            }
 
             set(ref(database, `users/${currentUser.username}/balances`), balances);
-            addToHistory('Allowance', total, null, `Split: ${hangout}/${savings}/${playstation}`);
+            addToHistory('Allowance', total, null, `Split: ${hangout}/${savings}${userPreferences.enablePlaystation ? '/' + playstation : ''}`);
             checkHangoutLimit();
             closeModal('allowanceModal');
             showNotification('Allowance added successfully!');
@@ -1974,6 +2643,25 @@
                 return;
             }
 
+            // Minimum savings check for Asser when transferring from Savings
+            if (currentUser.username.toLowerCase() === 'asser' && from === 'savings') {
+                const minimumSavings = userPreferences.minimumSavings || 50;
+                const remainingAfterTransfer = balances.savings - amount;
+                
+                if (remainingAfterTransfer < minimumSavings) {
+                    const allowedAmount = balances.savings - minimumSavings;
+                    if (allowedAmount <= 0) {
+                        showNotification(`⚠️ Cannot transfer from Savings! You must keep at least ${minimumSavings} SAR in Savings. Your current balance is ${balances.savings} SAR.`, true);
+                        return;
+                    } else {
+                        const confirmation = confirm(`⚠️ Minimum Savings Warning: This transfer will bring your Savings below ${minimumSavings} SAR.\n\n• Current Savings: ${balances.savings} SAR\n• Transfer amount: ${amount} SAR\n• Remaining: ${remainingAfterTransfer} SAR\n• Minimum required: ${minimumSavings} SAR\n\nYou can only transfer up to ${allowedAmount} SAR from Savings. Continue anyway?`);
+                        if (!confirmation) {
+                            return;
+                        }
+                    }
+                }
+            }
+
             balances[from] -= amount;
             balances[to] += amount;
             set(ref(database, `users/${currentUser.username}/balances`), balances);
@@ -2002,6 +2690,47 @@
             if (balances[category] < cost) {
                 showNotification(`Insufficient funds in ${category}`, true);
                 return;
+            }
+
+            // Minimum savings check for Asser
+            if (currentUser.username.toLowerCase() === 'asser' && category === 'savings') {
+                const minimumSavings = userPreferences.minimumSavings || 50;
+                const remainingAfterPurchase = balances.savings - cost;
+                
+                if (remainingAfterPurchase < minimumSavings) {
+                    const allowedAmount = balances.savings - minimumSavings;
+                    if (allowedAmount <= 0) {
+                        showNotification(`⚠️ Cannot spend from Savings! You must keep at least ${minimumSavings} SAR in Savings. Your current balance is ${balances.savings} SAR.`, true);
+                        return;
+                    } else {
+                        const confirmation = confirm(`⚠️ Minimum Savings Warning: This purchase will bring your Savings below ${minimumSavings} SAR.\n\n• Current Savings: ${balances.savings} SAR\n• Purchase cost: ${cost} SAR\n• Remaining: ${remainingAfterPurchase} SAR\n• Minimum required: ${minimumSavings} SAR\n\nYou can only spend up to ${allowedAmount} SAR from Savings. Continue anyway?`);
+                        if (!confirmation) {
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Smart warning for Asser's hangout purchases with monthly budgeting
+            if (currentUser.username.toLowerCase() === 'asser' && category === 'hangout') {
+                const monthlyAnalysis = analyzeMonthlySpending();
+                
+                if (monthlyAnalysis.warningLevel === 'critical') {
+                    const confirmation = confirm(`⚠️ CRITICAL WARNING: ${monthlyAnalysis.message}\n\n${monthlyAnalysis.suggestion}\n\nContinue anyway? You still have enough money, but this will make it very hard to last the month.`);
+                    if (!confirmation) {
+                        return;
+                    }
+                } else if (monthlyAnalysis.warningLevel === 'high') {
+                    const confirmation = confirm(`⚠️ Spending Warning: ${monthlyAnalysis.message}\n\n${monthlyAnalysis.suggestion}\n\nContinue anyway?`);
+                    if (!confirmation) {
+                        return;
+                    }
+                } else if (monthlyAnalysis.warningLevel === 'medium') {
+                    const confirmation = confirm(`💡 Budget Tip: ${monthlyAnalysis.message}\n\n${monthlyAnalysis.suggestion}\n\nContinue?`);
+                    if (!confirmation) {
+                        return;
+                    }
+                }
             }
 
             balances[category] -= cost;
@@ -2102,7 +2831,12 @@
             const q = question.toLowerCase();
             const total = balances.hangout + balances.savings + balances.playstation;
             
-            // Rule-based AI responses
+            // Special smart advisor for Asser
+            if (currentUser && currentUser.username.toLowerCase() === 'asser') {
+                return getAsserAIResponse(q, total);
+            }
+            
+            // Rule-based AI responses for other users
             if (q.includes('worth it') || q.includes('should i buy')) {
                 if (balances.hangout > 50) {
                     return `You have ${balances.hangout} SAR in Hangout. As long as it's not more than 30-40 SAR, you should be fine. Remember to save some for later!`;
@@ -2152,7 +2886,187 @@
             }
             
             // Default response
-            return `Based on your current balances:\n• Hangout: ${balances.hangout} SAR\n• Savings: ${balances.savings} SAR\n• PlayStation: ${balances.playstation} SAR\n\nI'd recommend keeping your Hangout under 140 SAR and focusing on building your Savings for bigger goals. Is there something specific you're planning to buy?`;
+            return `Based on your current balances:\n• Hangout: ${balances.hangout} SAR\n• Savings: ${balances.savings} SAR\n• PlayStation: ${balances.playstation} SAR\n\nI'd recommend keeping your Hangout under ${userPreferences.hangoutLimit} SAR and focusing on building your Savings for bigger goals. Is there something specific you're planning to buy?`;
+        }
+
+        // Special AI advisor for Asser with monthly budgeting logic
+        function getAsserAIResponse(question, total) {
+            const monthlyAnalysis = analyzeMonthlySpending();
+            const weeklyBudget = userPreferences.weeklyHangoutBudget * userPreferences.hangoutBudgetPerDay; // 4 * 15 = 60 SAR per week
+            const remainingThisWeek = weeklyBudget - getWeeklySpending();
+            
+            if (question.includes('can i buy') || question.includes('should i buy') || question.includes('worth it')) {
+                // Try to extract cost from question
+                const costMatch = question.match(/(\d+)/);
+                const estimatedCost = costMatch ? parseInt(costMatch[0]) : 15; // Default to 15 SAR if no number found
+                
+                if (estimatedCost <= balances.hangout) {
+                    const dailyRate = getMonthlySpending() / new Date().getDate();
+                    const sustainableRate = balances.hangout / monthlyAnalysis.daysRemaining;
+                    
+                    if (estimatedCost > sustainableRate) {
+                        return `You have ${balances.hangout} SAR so you can afford this ${estimatedCost} SAR purchase. ⚠️ But this is more than your sustainable daily rate of ${sustainableRate.toFixed(1)} SAR. You have ${monthlyAnalysis.daysRemaining} days left in the month. Consider if you really need this right now.`;
+                    } else {
+                        return `Yes! You have ${balances.hangout} SAR and this costs ${estimatedCost} SAR. At your current spending rate, you should be fine for the ${monthlyAnalysis.daysRemaining} days left this month. Just keep spending around ${sustainableRate.toFixed(1)} SAR per day! 💪`;
+                    }
+                } else {
+                    return `This costs ${estimatedCost} SAR but you only have ${balances.hangout} SAR in Hangout. I'd recommend saving up or transferring from Savings if it's really important.`;
+                }
+            }
+            
+            if (question.includes('month') || question.includes('monthly')) {
+                return `📅 Monthly Analysis:\n• Current balance: ${balances.hangout} SAR\n• Days left this month: ${monthlyAnalysis.daysRemaining}\n• Your spending rate: ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day\n• Sustainable rate: ${monthlyAnalysis.sustainableDailyRate.toFixed(1)} SAR/day\n• To last the month, spend about ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day.`;
+            }
+            
+            if (question.includes('week') || question.includes('weekly')) {
+                return `Your weekly hangout budget is ${weeklyBudget} SAR for ${userPreferences.weeklyHangoutBudget} hangout days (${userPreferences.hangoutBudgetPerDay} SAR per day). You have ${balances.hangout} SAR currently. For the month, you have ${monthlyAnalysis.daysRemaining} days left, so try to spend about ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day.`;
+            }
+            
+            if (question.includes('how much') || question.includes('balance')) {
+                return `Hey Asser! Here's your budget breakdown:\n• Hangout: ${balances.hangout} SAR (Limit: ${userPreferences.hangoutLimit} SAR)\n• Savings: ${balances.savings} SAR\n• Days left this month: ${monthlyAnalysis.daysRemaining}\n• Daily budget: ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR\n• Your spending rate: ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day`;
+            }
+            
+            if (question.includes('save') || question.includes('saving')) {
+                const savingsRate = userPreferences.useFixedAmounts ? 
+                    userPreferences.fixedSavingsAmount : 
+                    Math.round(userPreferences.savingsPercent / 100 * 120); // Assuming 120 SAR allowance
+                const minimumSavings = userPreferences.minimumSavings || 0;
+                const minimumInfo = minimumSavings > 0 ? `\n• Minimum required: ${minimumSavings} SAR (you can't spend below this)` : '';
+                return `You're saving ${balances.savings} SAR! With your current setup (${savingsRate} SAR fixed savings), you add ${savingsRate} SAR to savings each allowance. You're also spending at ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day which is ${monthlyAnalysis.dailyAverage <= monthlyAnalysis.sustainableDailyRate ? '✅ on track' : '⚠️ too fast'} for your monthly budget.${minimumInfo} Keep it up! 💰`;
+            }
+            
+            if (question.includes('broke') || question.includes('run out') || question.includes('zero')) {
+                if (monthlyAnalysis.warningLevel === 'critical') {
+                    return `⚠️ CRITICAL: You're spending way too fast! At your current rate of ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day, you'll run out ${Math.ceil(monthlyAnalysis.daysRemaining - (balances.hangout / monthlyAnalysis.dailyAverage))} days before month end. You MUST slow down to ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day!`;
+                } else if (monthlyAnalysis.warningLevel === 'high') {
+                    return `⚠️ Warning: You're spending ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day but should be spending ${monthlyAnalysis.sustainableDailyRate.toFixed(1)} SAR/day. You have ${monthlyAnalysis.daysRemaining} days left. Slow down to avoid running out!`;
+                } else {
+                    return `You're doing okay! You have ${balances.hangout} SAR for ${monthlyAnalysis.daysRemaining} days. Your spending rate is ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day which is sustainable. Just keep it around ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day and you'll be fine!`;
+                }
+            }
+            
+            if (question.includes('next allowance') || question.includes('until next')) {
+                const nextHangout = userPreferences.useFixedAmounts ? 
+                    userPreferences.fixedHangoutAmount : 
+                    Math.round(120 * userPreferences.hangoutPercent / 100);
+                return `Your current setup (${userPreferences.useFixedAmounts ? nextHangout + ' SAR fixed' : userPreferences.hangoutPercent + '% Hangout'}) means you'll get ${nextHangout} SAR for hangouts next allowance. Combined with your current ${balances.hangout} SAR, you'll have ${balances.hangout + nextHangout} SAR. For the ${monthlyAnalysis.daysRemaining} days left, aim for ${Math.floor((balances.hangout + nextHangout) / monthlyAnalysis.daysRemaining)} SAR per day.`;
+            }
+            
+            if (question.includes('today') || question.includes('rate')) {
+                return `Today's spending analysis:\n• You've spent ${getMonthlySpending()} SAR this month\n• That's ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR per day\n• You should spend ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day\n• You have ${balances.hangout} SAR left for ${monthlyAnalysis.daysRemaining} days`;
+            }
+            
+            // Default Asser response with monthly focus
+            const minimumSavings = userPreferences.minimumSavings || 0;
+            const minimumInfo = minimumSavings > 0 ? ` You must keep at least ${minimumSavings} SAR in Savings.` : '';
+            return `Hey Asser! 👋 You have ${balances.hangout} SAR in Hangout for ${monthlyAnalysis.daysRemaining} days left this month. To make it through, try to spend about ${Math.floor(monthlyAnalysis.sustainableDailyRate)} SAR per day. Your current spending rate is ${monthlyAnalysis.dailyAverage.toFixed(1)} SAR/day (${monthlyAnalysis.dailyAverage <= monthlyAnalysis.sustainableDailyRate ? '✅ Good!' : '⚠️ Too fast!'}). Your Savings is at ${balances.savings} SAR${minimumInfo} Keep up the great habits! 💪`;
+        }
+
+        // Calculate how much has been spent on hangouts this week
+        function getWeeklySpending() {
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            
+            let weeklySpending = 0;
+            history.forEach(item => {
+                if (item.type === 'Purchase' && item.category === 'hangout') {
+                    const itemDate = new Date(item.date);
+                    if (itemDate > oneWeekAgo) {
+                        weeklySpending += Math.abs(item.amount);
+                    }
+                }
+            });
+            
+            return weeklySpending;
+        }
+
+        // Analyze monthly spending for Asser
+        function analyzeMonthlySpending() {
+            const now = new Date();
+            const currentDay = now.getDate();
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const daysPassed = currentDay;
+            const daysRemaining = daysInMonth - currentDay;
+            
+            // Calculate spending rate
+            const thisMonthSpending = getMonthlySpending();
+            const dailyAverage = thisMonthSpending / daysPassed;
+            const projectedMonthlySpending = dailyAverage * daysInMonth;
+            
+            // Calculate if he can sustain this rate
+            const currentBalance = balances.hangout;
+            const sustainableDailyRate = currentBalance / daysRemaining;
+            
+            // Get recent spending pattern (last 5 purchases)
+            const recentPurchases = history
+                .filter(item => item.type === 'Purchase' && item.category === 'hangout')
+                .slice(-5);
+            
+            const averageRecentPurchase = recentPurchases.length > 0 
+                ? recentPurchases.reduce((sum, item) => sum + Math.abs(item.amount), 0) / recentPurchases.length 
+                : 0;
+            
+            // Calculate what the next purchase would do
+            const nextPurchaseAmount = 5; // Assume 5 SAR as example purchase
+            const projectedDailyRateAfterPurchase = (thisMonthSpending + nextPurchaseAmount) / daysPassed;
+            
+            // Determine warning level
+            let warningLevel = 'none';
+            let message = '';
+            let suggestion = '';
+            
+            // Critical: Spending way too fast
+            if (projectedDailyRateAfterPurchase > sustainableDailyRate * 2) {
+                warningLevel = 'critical';
+                message = `You're spending ${(projectedDailyRateAfterPurchase).toFixed(1)} SAR/day but only have enough for ${sustainableDailyRate.toFixed(1)} SAR/day to last the month.`;
+                suggestion = `At this rate, you'll run out ${Math.ceil(daysInMonth - (currentBalance / projectedDailyRateAfterPurchase))} days before month end. Try to spend less than ${Math.floor(sustainableDailyRate)} SAR per day.`;
+            }
+            // High: Spending too fast
+            else if (projectedDailyRateAfterPurchase > sustainableDailyRate * 1.5) {
+                warningLevel = 'high';
+                message = `You're spending ${(projectedDailyRateAfterPurchase).toFixed(1)} SAR/day, which is faster than your sustainable rate of ${sustainableDailyRate.toFixed(1)} SAR/day.`;
+                suggestion = `You have ${daysRemaining} days left. Try to stick to ${Math.floor(sustainableDailyRate)} SAR per day to make it through the month.`;
+            }
+            // Medium: Recent purchases are large
+            else if (averageRecentPurchase > sustainableDailyRate * 1.3) {
+                warningLevel = 'medium';
+                message = `Your recent purchases average ${averageRecentPurchase.toFixed(1)} SAR, which is higher than ideal.`;
+                suggestion = `You have ${currentBalance} SAR for ${daysRemaining} days. Try to keep purchases under ${Math.floor(sustainableDailyRate)} SAR each.`;
+            }
+            // Low: Just a friendly reminder
+            else if (daysRemaining < 10 && currentBalance < sustainableDailyRate * 5) {
+                warningLevel = 'low';
+                message = `You have ${daysRemaining} days left with ${currentBalance} SAR in Hangout.`;
+                suggestion = `You should be okay if you spend about ${Math.floor(sustainableDailyRate)} SAR per day for the rest of the month.`;
+            }
+            
+            return {
+                warningLevel,
+                message,
+                suggestion,
+                dailyAverage,
+                sustainableDailyRate,
+                daysRemaining,
+                currentBalance
+            };
+        }
+
+        // Calculate monthly spending
+        function getMonthlySpending() {
+            const now = new Date();
+            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            
+            let monthlySpending = 0;
+            history.forEach(item => {
+                if (item.type === 'Purchase' && item.category === 'hangout') {
+                    const itemDate = new Date(item.date);
+                    if (itemDate >= firstDayOfMonth) {
+                        monthlySpending += Math.abs(item.amount);
+                    }
+                }
+            });
+            
+            return monthlySpending;
         }
 
         // Notification

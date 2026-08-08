@@ -6,7 +6,9 @@ A beautiful personal money manager app designed for mobile and desktop, with PWA
 
 - 🔐 **User Authentication**: Simple username/password accounts stored in Firebase Realtime Database
 - 👥 **Multiple Users**: Each user has completely separate data and accounts
-- 💰 **Allowance Management**: Add allowance with auto-calculated splits (50% Hangout, 37.5% Savings, 12.5% PlayStation)
+- ⚙️ **Customizable Settings**: Set your own Hangout limit, enable/disable buckets, customize allowance splits
+- 🎯 **Account Setup**: Personalized onboarding when creating a new account
+- 💰 **Allowance Management**: Add allowance with auto-calculated splits (customizable percentages)
 - 🔄 **Flexible Transfers**: Move money between buckets anytime
 - 🛒 **Purchase Tracking**: Record purchases from any bucket
 - ✏️ **Manual Editing**: Fix balances when needed
