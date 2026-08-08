@@ -4,8 +4,9 @@ A beautiful personal money manager app designed for mobile and desktop, with PWA
 
 ## Features
 
-- � **User Authentication**: Secure login/signup with email and password
-- �💰 **Allowance Management**: Add allowance with auto-calculated splits (50% Hangout, 37.5% Savings, 12.5% PlayStation)
+- 🔐 **User Authentication**: Simple username/password accounts stored in Firebase Realtime Database
+- 👥 **Multiple Users**: Each user has completely separate data and accounts
+- 💰 **Allowance Management**: Add allowance with auto-calculated splits (50% Hangout, 37.5% Savings, 12.5% PlayStation)
 - 🔄 **Flexible Transfers**: Move money between buckets anytime
 - 🛒 **Purchase Tracking**: Record purchases from any bucket
 - ✏️ **Manual Editing**: Fix balances when needed
@@ -29,7 +30,7 @@ A beautiful personal money manager app designed for mobile and desktop, with PWA
 ## Quick Start
 
 1. Open `index.html` in your browser
-2. Click "Sign Up" to create an account with your email and password
+2. Click "Sign Up" to create an account with username and password
 3. Login with your credentials
 4. Set your initial balances using "Edit Money"
 5. Start tracking your finances!
@@ -38,33 +39,15 @@ Icons are already included for PWA installation.
 
 ## Firebase Configuration
 
-The app uses Firebase with the following configuration:
+The app uses Firebase Realtime Database with the following configuration:
 - Project: money-e560a
 - Database: Realtime Database
-- Authentication: Email/Password
+- Authentication: Custom username/password system stored in database
 - Features: Balances, History, Goals storage (per-user)
 
-**Important Setup Steps**:
-1. Go to Firebase Console → Authentication
-2. Click "Get Started"
-3. Enable "Email/Password" sign-in method
-4. Set up Realtime Database rules for user isolation
+**No additional Firebase setup required!** The app handles authentication directly in the Realtime Database.
 
-**Data Privacy**: Each user's data is completely private and isolated. Users can only see and modify their own financial data.
-
-**Database Rules**: Set these rules in Firebase Console → Realtime Database → Rules:
-```json
-{
-  "rules": {
-    "users": {
-      "$uid": {
-        ".read": "auth != null && auth.uid == $uid",
-        ".write": "auth != null && auth.uid == $uid"
-      }
-    }
-  }
-}
-```
+**Data Privacy**: Each user's data is completely private and isolated under their username. Users can only see and modify their own financial data.
 
 ## File Structure
 
