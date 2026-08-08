@@ -1018,7 +1018,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Total Amount (SAR)</label>
-                <input type="number" class="form-input" id="allowanceAmount" placeholder="120" value="120" oninput="autoCalculateSplit()">
+                <input type="number" class="form-input" id="allowanceAmount" placeholder="120" value="120" onchange="autoCalculateSplit()">
             </div>
             <div class="slider-container">
                 <div class="slider-label">
@@ -2499,7 +2499,13 @@
 
         // Auto calculate allowance split based on total amount
         window.autoCalculateSplit = function() {
-            const total = parseInt(document.getElementById('allowanceAmount').value) || 120;
+            const inputElement = document.getElementById('allowanceAmount');
+            const total = parseInt(inputElement.value) || 120;
+            
+            // Ensure we have a valid total
+            if (isNaN(total) || total <= 0) {
+                return;
+            }
             
             let hangout, savings, playstation;
             
@@ -2510,9 +2516,9 @@
                 if (userPreferences.enablePlaystation) {
                     playstation = total - hangout - savings;
                 } else {
-                    // If PlayStation is disabled, remaining goes to savings
-                    savings = total - hangout;
+                    // If PlayStation is disabled, remaining goes to savings (after fixed amounts)
                     playstation = 0;
+                    savings = userPreferences.fixedSavingsAmount + (total - hangout - userPreferences.fixedSavingsAmount);
                 }
             } else {
                 // Calculate splits based on user preferences
